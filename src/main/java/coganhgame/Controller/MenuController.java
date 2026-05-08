@@ -32,8 +32,23 @@ public class MenuController {
 
     @FXML
     public void onContinueClick(ActionEvent actionEvent) {
+        Game game;
+        try {
+            // Cố gắng tải game (UC 06)
+            game = Game.loadGame();
+        } catch (GameNotFoundException e) {
+            // Bắt lỗi và hiện Popup (UC 07)
+            ViewUtilities.showAlert("Error", "No saved game found!");
+            return; // Dừng lại, không chuyển cảnh
+        }
 
+        // Chuyển cảnh với dữ liệu cũ
+        Node source = (Node) actionEvent.getSource();
+        Stage currentStage = (Stage) source.getScene().getWindow();
+        GameController controller = new GameController(game); // Sử dụng constructor Overload
+        showGameView(currentStage, controller);
     }
+
 
     private void showGameView(Stage currentStage, GameController controller) {
 
