@@ -273,7 +273,21 @@ public class Game implements Serializable {
         return carriedTiles;
     }
 
-   
+    public boolean isGameOver() {
+        return getCurrentPlayer().getTotalPiece() == Constants.TOTAL_PIECE || getOpponent().getTotalPiece() == Constants.TOTAL_PIECE;
+    }
+
+    public void resetGame() {
+        this.currentPlayer = this.player1;
+        ((HumanPlayer) this.player1).setTimeLeft(this.timeLimit * 1000);
+        ((HumanPlayer) this.player2).setTimeLeft(this.timeLimit * 1000); // Đã bỏ check instanceof
+        this.player1.increaseTotalPiece(Constants.TOTAL_PIECE / 2 - this.player1.getTotalPiece());
+        this.player2.increaseTotalPiece(Constants.TOTAL_PIECE / 2 - this.player2.getTotalPiece());
+        this.player1.setTotalTime(0);
+        this.player2.setTotalTime(0);
+        this.openingTile = null;
+        initBoard();
+    }
 
     public void saveGame() {
         try {
