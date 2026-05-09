@@ -52,7 +52,7 @@ public class MenuController {
     public void onContinueClick(ActionEvent actionEvent) {
         Game game;
         try {
-            game = GameNotFoundException.loadGame();
+            game = Game.loadGame();
         } catch (GameNotFoundException e) {
             ViewUtilities.showAlert("Error", "No saved game found!");
             return;

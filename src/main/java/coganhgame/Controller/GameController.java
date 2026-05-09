@@ -95,12 +95,12 @@ public class GameController {
     private final TileComp[][] viewBoard = new TileComp[Constants.WIDTH][Constants.HEIGHT];
     private final Map<Piece, PieceComp> pieceMap = new HashMap<>();
 
-    /*    private final ChangeListener<Number> timeLeftListener = (observable, oldValue, newValue) -> {
-            if (newValue.intValue() <= 0) {
-                clearOpenHighlight();
-                switchPlayer();
-            }
-        };*/
+    private final ChangeListener<Number> timeLeftListener = (observable, oldValue, newValue) -> {
+        if (newValue.intValue() <= 0) {
+            clearOpenHighlight();
+            switchPlayer();
+        }
+    };
     private final Timeline timeline = new Timeline();
 
     public GameController(String player1Name, String player2Name, int timeLimit) {
@@ -113,11 +113,84 @@ public class GameController {
 
     @FXML
     public void initialize() {
+        initViewBoard();
+        boardPane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        boardPane.setPrefSize(AdaptiveUtilities.BOARD_WIDTH, AdaptiveUtilities.BOARD_HEIGHT);
+        boardPane.getChildren().addAll(tileCompGroup, pieceCompGroup);
 
+        timeline.getKeyFrames().addAll(
+                new KeyFrame(Duration.ZERO, new KeyValue(prbTimeLeft.progressProperty(), 1)),
+                new KeyFrame(Duration.seconds(game.getTimeLimit()), new KeyValue(prbTimeLeft.progressProperty(), 0))
+        );
+
+        // Ẩn các thành phần giao diện của Bot đi
+        if (botPositionCountLabel != null) vbBlue.getChildren().remove(botPositionCountLabel);
+        if (hbBotLevel != null) vbBlue.getChildren().remove(hbBotLevel);
+        if (player2NameLabel != null) HBox.setMargin(player2NameLabel, new Insets(0, 0, 10, 0));
+
+        vbRed.getChildren().remove(hbOpenRed);
+        vbBlue.getChildren().remove(hbOpenBlue);
+
+        if (game.isOpening()) {
+            ArrayList<Tile> openTiles = game.checkOpeningTile(game.getOpeningTile(), game.getOpponent().getSide());
+            viewBoard[game.getOpeningTile().getRow()][game.getOpeningTile().getCol()].highlight(game.getCurrentPlayer().getSide());
+            for (Tile openTile : openTiles) {
+                PieceComp openPieceComp = pieceMap.get(openTile.getPiece());
+                openPieceComp.highlightOpen();
+            }
+        }
+
+        ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().addListener(timeLeftListener);
+        game.getCurrentPlayer().playTimer();
+        updateCurrentPlayerLabel();
+
+        currentLabel.setText("'s turn");
+        player1NameLabel.setText(game.getPlayer1().getName());
+        player1NameLabel.setTextFill(ViewUtilities.RED_PIECE_COLOR);
+        player2NameLabel.setText(game.getPlayer2().getName());
+        player2NameLabel.setTextFill(ViewUtilities.BUE_PIECE_COLOR);
+
+        lblTotalPiecesRed.setText("x " + game.getPlayer1().getTotalPiece());
+        lblTotalPiecesBlue.setText("x " + game.getPlayer2().getTotalPiece());
+        lblTotalTimeRed.setText("Total time: " + ((double) game.getPlayer1().getTotalTime() / 1000) + "s");
+        lblTotalTimeBlue.setText("Total time: " + ((double) game.getPlayer2().getTotalTime() / 1000) + "s");
+        runTimer();
     }
 
     private void initViewBoard() {
+        Tile[][] modelBoard = game.getBoard();
 
+        for (int row = 0; row < Constants.HEIGHT; row++) {
+            for (int col = 0; col < Constants.WIDTH; col++) {
+                TileComp tileComp = new TileComp(row, col);
+                viewBoard[row][col] = tileComp;
+
+                if (col == 0 || col == Constants.WIDTH - 1) {
+                    Label label = new Label(String.valueOf(Constants.HEIGHT - row));
+                    label.setTranslateX(col == 0 ? -(AdaptiveUtilities.PIECE_SIZE * 1.5) : (AdaptiveUtilities.PIECE_SIZE * 1.5));
+                    label.setFont(ViewUtilities.COOR_FONT);
+                    tileComp.getChildren().add(label);
+                }
+                if (row == 0 || row == Constants.HEIGHT - 1) {
+                    Label label = new Label(String.valueOf((char) (col + 65)));
+                    label.setTranslateY(row == 0 ? -(AdaptiveUtilities.PIECE_SIZE * 1.5) : (AdaptiveUtilities.PIECE_SIZE * 1.5 + 2));
+                    label.setFont(ViewUtilities.COOR_FONT);
+                    tileComp.getChildren().add(label);
+                }
+
+                Tile modelTile = modelBoard[row][col];
+                if (modelTile.hasPiece()) {
+                    PieceComp pieceComp = makePieceComp(modelTile.getPiece().getSide(), row, col);
+                    pieceCompGroup.getChildren().add(pieceComp);
+                    pieceMap.put(modelTile.getPiece(), pieceComp);
+                    if (modelTile.getPiece().getSide() != game.getCurrentPlayer().getSide()) {
+                        pieceComp.setDisablePiece();
+                    }
+                }
+
+                tileCompGroup.getChildren().add(tileComp);
+            }
+        }
     }
 
     private PieceComp makePieceComp(boolean side, int row, int col) {
@@ -235,48 +308,160 @@ public class GameController {
         return pieceComp;
     }
 
-
     private int toBoardPos(double pixel) {
-
-        return 0;
+        return (int) ((int) (pixel + AdaptiveUtilities.TILE_SIZE / 2) / AdaptiveUtilities.TILE_SIZE);
     }
 
-
+    // Đã tối ưu hóa hàm đổi lượt: loại bỏ hoàn toàn các dòng check Bot
     private void switchPlayer() {
+        game.getCurrentPlayer().pauseTimer();
+        ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().removeListener(timeLeftListener);
+        ((HumanPlayer) game.getCurrentPlayer()).setTimeLeft(game.getTimeLimit() * 1000);
 
+        if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
+            lblTotalTimeRed.setText("Total time: " + ((double) game.getCurrentPlayer().getTotalTime() / 1000) + "s");
+        } else {
+            lblTotalTimeBlue.setText("Total time: " + ((double) game.getCurrentPlayer().getTotalTime() / 1000) + "s");
+        }
+
+        if (game.isGameOver()) {
+            endGame();
+            return;
+        }
+
+        game.switchPlayer();
+        updateCurrentPlayerLabel();
+
+        ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().addListener(timeLeftListener);
+        game.getCurrentPlayer().playTimer();
+
+        for (PieceComp piece : pieceMap.values()) {
+            if (piece.getSide() == game.getCurrentPlayer().getSide()) {
+                piece.setEnablePiece();
+            } else {
+                piece.setDisablePiece();
+            }
+        }
+        runTimer();
     }
 
     private void updateCurrentPlayerLabel() {
-
+        if (currentNameLabel != null && game != null && game.getCurrentPlayer() != null) {
+            currentNameLabel.setText(game.getCurrentPlayer().getName());
+            currentNameLabel.setTextFill(game.getCurrentPlayer().getSide() == Constants.RED_SIDE ? ViewUtilities.RED_PIECE_COLOR : ViewUtilities.BUE_PIECE_COLOR);
+        }
     }
 
     private void runTimer() {
-
+        timeline.stop();
+        prbTimeLeft.setProgress(1);
+        if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
+            prbTimeLeft.setRotate(180);
+            prbTimeLeft.setStyle("-fx-accent: #E21818;");
+        } else {
+            prbTimeLeft.setRotate(0);
+            prbTimeLeft.setStyle("-fx-accent: #2666CF;");
+        }
+        timeline.playFromStart();
     }
 
     private void endGame() {
-
+        prbTimeLeft.setProgress(1);
+        timeline.stop();
+        for (PieceComp piece : pieceMap.values()) {
+            piece.setDisablePiece();
+        }
+        currentLabel.setText(" win");
+        if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
+            prbTimeLeft.setStyle("-fx-accent: #E21818;");
+        } else {
+            prbTimeLeft.setStyle("-fx-accent: #2666CF;");
+        }
     }
 
     private void clearOpenHighlight() {
-
+        if (currentTile == null) {
+            return;
+        }
+        viewBoard[currentTile.getRow()][currentTile.getCol()].removeHighlight();
+        for (PieceComp pieceComp : pieceMap.values()) {
+            pieceComp.removeHighlightOpen();
+        }
     }
 
     @FXML
     public void onBtnResetClick() {
+        game.getCurrentPlayer().pauseTimer();
+        timeline.pause();
+
+        if (ViewUtilities.showConfirm("Reset Confirmation", "Are you sure you want to reset the game?")) {
+            game.resetGame();
+            boardPane.getChildren().clear();
+            tileCompGroup.getChildren().clear();
+            pieceCompGroup.getChildren().clear();
+            pieceMap.clear();
+            initialize();
+        } else {
+            game.getCurrentPlayer().playTimer();
+            timeline.play();
+        }
     }
 
     @FXML
     public void onBtnOpenClick() {
-
+        vbRed.getChildren().remove(hbOpenRed);
+        vbBlue.getChildren().remove(hbOpenBlue);
+        game.setOpeningTile(currentTile);
+        switchPlayer();
     }
 
     @FXML
     public void onBtnPassClick() {
+        vbRed.getChildren().remove(hbOpenRed);
+        vbBlue.getChildren().remove(hbOpenBlue);
+        clearOpenHighlight();
+        switchPlayer();
     }
 
     @FXML
     public void onBtnExitClick(ActionEvent actionEvent) {
+        game.getCurrentPlayer().pauseTimer();
+        timeline.pause();
 
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Exit Confirmation");
+        alert.setHeaderText(null);
+
+        ButtonType yesButton = new ButtonType("Yes", ButtonBar.ButtonData.YES);
+        ButtonType noButton = new ButtonType("No", ButtonBar.ButtonData.NO);
+        ButtonType cancelButton = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+        if (!game.isGameOver()) {
+            alert.getButtonTypes().setAll(yesButton, noButton, cancelButton);
+            alert.setContentText("The game is not over yet. Do you want to save the game before exit?");
+            ButtonType result = alert.showAndWait().orElse(cancelButton);
+            if (result == yesButton) {
+                game.saveGame();
+                Node source = (Node) actionEvent.getSource();
+                Stage currentStage = (Stage) source.getScene().getWindow();
+                currentStage.hide();
+            } else if (result == noButton) {
+                Node source = (Node) actionEvent.getSource();
+                Stage currentStage = (Stage) source.getScene().getWindow();
+                currentStage.hide();
+            } else {
+                game.getCurrentPlayer().playTimer();
+                timeline.play();
+            }
+        } else {
+            alert.getButtonTypes().setAll(yesButton, noButton);
+            alert.setContentText("Are you sure you want to exit?");
+            ButtonType result = alert.showAndWait().orElse(noButton);
+            if (result == yesButton) {
+                Node source = (Node) actionEvent.getSource();
+                Stage currentStage = (Stage) source.getScene().getWindow();
+                currentStage.hide();
+            }
+        }
     }
 }
