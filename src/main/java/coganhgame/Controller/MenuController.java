@@ -34,18 +34,15 @@ public class MenuController {
     public void onContinueClick(ActionEvent actionEvent) {
         Game game;
         try {
-            // Cố gắng tải game (UC 06)
             game = Game.loadGame();
         } catch (GameNotFoundException e) {
-            // Bắt lỗi và hiện Popup (UC 07)
             ViewUtilities.showAlert("Error", "No saved game found!");
-            return; // Dừng lại, không chuyển cảnh
+            return;
         }
 
-        // Chuyển cảnh với dữ liệu cũ
         Node source = (Node) actionEvent.getSource();
         Stage currentStage = (Stage) source.getScene().getWindow();
-        GameController controller = new GameController(game); // Sử dụng constructor Overload
+        GameController controller = new GameController(game);
         showGameView(currentStage, controller);
     }
     private void showGameView(Stage currentStage, GameController controller) {
@@ -58,15 +55,11 @@ public class MenuController {
         try {
             Node source = (Node) actionEvent.getSource();
             Stage currentStage = (Stage) source.getScene().getWindow();
-
-            // Nạp giao diện Slide
             FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/presentation-view.fxml"));
             Stage presentationStage = new Stage();
             presentationStage.setTitle("How to Play");
             Scene scene = new Scene(fxmlLoader.load());
             presentationStage.setScene(scene);
-
-            // Ẩn Menu đi, khi nào tắt Slide thì Menu hiện lại
             presentationStage.setOnShown(event -> currentStage.hide());
             presentationStage.setOnHidden(event -> currentStage.show());
 
