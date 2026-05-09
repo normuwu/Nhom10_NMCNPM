@@ -122,45 +122,9 @@ public class Game implements Serializable {
     }
 
     private ArrayList<Piece> getCarriedPieces(Tile toTile) {
-        ArrayList<Piece> carriedPieces = new ArrayList<>();
-        int row = toTile.getRow();
-        int col = toTile.getCol();
 
-        // Lấy các ô xung quanh ô vừa đi tới
-        ArrayList<Tile> connectedTilesOfToTile = toTile.getConnectedTiles(this.board);
-        Piece piece = this.board[row][col].getPiece();
-
-        // Dùng 2 vòng lặp để ghép cặp tất cả các ô xung quanh
-        for (int i = 0; i < connectedTilesOfToTile.size(); i++) {
-            Tile tile1 = connectedTilesOfToTile.get(i);
-            for (int j = i + 1; j < connectedTilesOfToTile.size(); j++) {
-                Tile tile2 = connectedTilesOfToTile.get(j);
-
-                // CÔNG THỨC ĂN TIỀN: Kiểm tra tính đối xứng qua ô trung tâm (toTile)
-                // Nếu thỏa mãn công thức này, tile1 và tile2 chắc chắn nằm đối diện nhau qua toTile
-                if (tile1.getRow() + tile2.getRow() != 2 * row || tile1.getCol() + tile2.getCol() != 2 * col) {
-                    continue; // Không đối xứng thì bỏ qua
-                }
-
-                // Nếu 2 ô đối xứng đều có quân cờ
-                if (tile1.hasPiece() && tile2.hasPiece()) {
-                    Piece piece1 = tile1.getPiece();
-                    Piece piece2 = tile2.getPiece();
-
-                    // Kiểm tra xem 2 quân đó có cùng phe với nhau và KHÁC phe với mình không
-                    if (piece1.getSide() == piece2.getSide() && piece1.getSide() != piece.getSide()) {
-                        // Nếu đúng -> Thực hiện Gánh (Bắt làm tù binh)
-                        carriedPieces.add(piece1);
-                        carriedPieces.add(piece2);
-                        piece1.flipSide(); // Lật màu
-                        piece2.flipSide(); // Lật màu
-                    }
-                }
-            }
-        }
-        return carriedPieces;
+        return null;
     }
-
 
     public ArrayList<Piece> getSurroundedPieces() {
 
