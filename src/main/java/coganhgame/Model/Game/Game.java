@@ -117,50 +117,77 @@ public class Game implements Serializable {
     }
 
     public MoveResult processMove(Move move) {
+        int fromRow = move.fromTile().getRow();
+        int fromCol = move.fromTile().getCol();
+        int toRow = move.toTile().getRow();
+        int toCol = move.toTile().getCol();
+        if (toRow < 0 || toRow >= Constants.HEIGHT || toCol < 0 || toCol >= Constants.WIDTH) {
+            // if the position (row, col) is out of the board, return invalid move
+            return new MoveResult(false, null);
+        }
 
-        return null;
+        Piece piece = this.board[fromRow][fromCol].getPiece();
+        if (this.board[toRow][toCol].hasPiece() || piece.getSide() != this.currentPlayer.getSide()) {
+            // if the tile at (row, col) already has a piece, return invalid move
+            return new MoveResult(false, null);
+        }
+
+        // get the connected tiles of the tile at (oldRow, oldCol)
+        ArrayList<Tile> connectedTiles = board[fromRow][fromCol].getConnectedTiles(this.board);
+        if (connectedTiles.contains(this.board[toRow][toCol])) {
+            // if the tile at (row, col) is in the connected tiles, move the piece to the new position
+            this.board[fromRow][fromCol].removePiece();
+            this.board[toRow][toCol].setPiece(piece);
+            ArrayList<Piece> capturedPieces = new ArrayList<>();
+            capturedPieces.addAll(getCarriedPieces(move.toTile()));
+            capturedPieces.addAll(getSurroundedPieces());
+            if (!capturedPieces.isEmpty()) {
+                // if the captured pieces are not empty, return a capture move
+                this.currentPlayer.increaseTotalPiece(capturedPieces.size());
+                // decrease the number of pieces of the opponent
+                getOpponent().decreaseTotalPiece(capturedPieces.size());
+                return new MoveResult(true, capturedPieces);
+            }
+            return new MoveResult(true, null);
+        }
+
+        return new MoveResult(false, null);
     }
 
     private ArrayList<Piece> getCarriedPieces(Tile toTile) {
         ArrayList<Piece> carriedPieces = new ArrayList<>();
         int row = toTile.getRow();
         int col = toTile.getCol();
-
-        // Lấy các ô xung quanh ô vừa đi tới
         ArrayList<Tile> connectedTilesOfToTile = toTile.getConnectedTiles(this.board);
-        Piece piece = this.board[row][col].getPiece();
 
-        // Dùng 2 vòng lặp để ghép cặp tất cả các ô xung quanh
+        Piece piece = this.board[row][col].getPiece();
+        // loop through all the connected tiles, check each pair of connected tiles
         for (int i = 0; i < connectedTilesOfToTile.size(); i++) {
             Tile tile1 = connectedTilesOfToTile.get(i);
             for (int j = i + 1; j < connectedTilesOfToTile.size(); j++) {
                 Tile tile2 = connectedTilesOfToTile.get(j);
 
-                // CÔNG THỨC ĂN TIỀN: Kiểm tra tính đối xứng qua ô trung tâm (toTile)
-                // Nếu thỏa mãn công thức này, tile1 và tile2 chắc chắn nằm đối diện nhau qua toTile
                 if (tile1.getRow() + tile2.getRow() != 2 * row || tile1.getCol() + tile2.getCol() != 2 * col) {
-                    continue; // Không đối xứng thì bỏ qua
+                    continue;
                 }
 
-                // Nếu 2 ô đối xứng đều có quân cờ
                 if (tile1.hasPiece() && tile2.hasPiece()) {
+                    // if both tiles have pieces, check if the pieces have the same side
                     Piece piece1 = tile1.getPiece();
                     Piece piece2 = tile2.getPiece();
-
-                    // Kiểm tra xem 2 quân đó có cùng phe với nhau và KHÁC phe với mình không
                     if (piece1.getSide() == piece2.getSide() && piece1.getSide() != piece.getSide()) {
-                        // Nếu đúng -> Thực hiện Gánh (Bắt làm tù binh)
+                        // if the pieces have the same side and the same side is different from the side of the piece
                         carriedPieces.add(piece1);
                         carriedPieces.add(piece2);
-                        piece1.flipSide(); // Lật màu
-                        piece2.flipSide(); // Lật màu
+                        piece1.flipSide();
+                        piece2.flipSide();
                     }
                 }
             }
         }
+
         return carriedPieces;
     }
-
 
     public ArrayList<Piece> getSurroundedPieces() {
         ArrayList<Piece> surroundedPieces = new ArrayList<>();
@@ -201,33 +228,94 @@ public class Game implements Serializable {
         return isSurrounded;
     }
 
-
     private void flipGroup(ArrayList<Piece> group) {
         for (Piece piece : group) {
             piece.flipSide();
         }
     }
 
-
     public ArrayList<Tile> checkOpeningTile(Tile tile, boolean side) {
+        ArrayList<Tile> connectedTiles = tile.getConnectedTiles(board);
+        ArrayList<Tile> carriedTiles = new ArrayList<>();
+        // loop through all the connected tiles, check if there is any piece of the opponent can move to the tile
+        boolean canMove = false;
+        for (Tile connectedTile : connectedTiles) {
+            if (connectedTile.hasPiece() && connectedTile.getPiece().getSide() == !side) {
+                canMove = true;
+            }
+        }
+        if (!canMove) {
+            return carriedTiles;
+        }
+        // loop through all the connected tiles, check each pair of connected tiles
+        for (int i = 0; i < connectedTiles.size(); i++) {
+            Tile tile1 = connectedTiles.get(i);
+            for (int j = i + 1; j < connectedTiles.size(); j++) {
+                Tile tile2 = connectedTiles.get(j);
 
-        return null;
+                if (tile1.getRow() + tile2.getRow() != 2 * tile.getRow() || tile1.getCol() + tile2.getCol() != 2 * tile.getCol()) {
+                    continue;
+                }
+
+                if (tile1.hasPiece() && tile2.hasPiece()) {
+                    // if both tiles have pieces, check if the pieces have the same side
+                    Piece piece1 = tile1.getPiece();
+                    Piece piece2 = tile2.getPiece();
+                    if (piece1.getSide() == piece2.getSide() && piece1.getSide() == side) {
+                        // if the pieces have the same side, add the tiles to the carried tiles
+                        carriedTiles.add(tile1);
+                        carriedTiles.add(tile2);
+                    }
+                }
+            }
+        }
+
+        return carriedTiles;
     }
 
     public boolean isGameOver() {
-        return false;
+        return getCurrentPlayer().getTotalPiece() == Constants.TOTAL_PIECE || getOpponent().getTotalPiece() == Constants.TOTAL_PIECE;
     }
 
     public void resetGame() {
-
+        this.currentPlayer = this.player1;
+        ((HumanPlayer) this.player1).setTimeLeft(this.timeLimit * 1000);
+        ((HumanPlayer) this.player2).setTimeLeft(this.timeLimit * 1000); // Đã bỏ check instanceof
+        this.player1.increaseTotalPiece(Constants.TOTAL_PIECE / 2 - this.player1.getTotalPiece());
+        this.player2.increaseTotalPiece(Constants.TOTAL_PIECE / 2 - this.player2.getTotalPiece());
+        this.player1.setTotalTime(0);
+        this.player2.setTotalTime(0);
+        this.openingTile = null;
+        initBoard();
     }
 
     public void saveGame() {
-
+        try {
+            FileOutputStream fos = new FileOutputStream("game_state.txt");
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(this);
+            oos.close();
+            fos.close();
+        } catch (IOException ex) {
+            ViewUtilities.showAlert("Error", "Error saving game", ex.getMessage());
+        }
     }
 
-    public static Game loadGame() {
-
-        return null;
+    public static Game loadGame() throws GameNotFoundException {
+        Game game = null;
+        try {
+            File file = new File("game_state.txt");
+            if (!file.exists() || file.length() == 0) {
+                throw new GameNotFoundException();
+            }
+            FileInputStream fis = new FileInputStream(file);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            game = (Game) ois.readObject();
+            ois.close();
+            fis.close();
+        } catch (IOException | ClassNotFoundException ex) {
+            ViewUtilities.showAlert("Error", "Error loading game", ex.getMessage());
+        }
+        return game;
     }
 }
