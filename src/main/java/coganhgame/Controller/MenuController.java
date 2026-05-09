@@ -1,7 +1,7 @@
 package coganhgame.Controller;
 
 import coganhgame.Exception.GameNotFoundException;
-
+import coganhgame.GameApplication;
 import coganhgame.Model.Game.Game;
 import coganhgame.Model.Settings.GameSettings;
 import coganhgame.Utilities.ViewUtilities;
@@ -27,46 +27,73 @@ public class MenuController {
 
     @FXML
     protected void onNewGameClick(ActionEvent actionEvent) {
+        Node source = (Node) actionEvent.getSource();
+        Stage currentStage = (Stage) source.getScene().getWindow();
 
+
+        GameSettings gameSettings = ViewUtilities.get2PlayersSettings();
+
+        if (gameSettings == null) {
+
+            return;
+        }
+
+
+        GameController controller = new GameController(
+                gameSettings.getPlayer1Name(),
+                gameSettings.getPlayer2Name(),
+                gameSettings.getGameTime()
+        );
+
+        showGameView(currentStage, controller);
     }
 
     @FXML
     public void onContinueClick(ActionEvent actionEvent) {
         Game game;
         try {
-            // Cố gắng tải game (UC 06)
-            game = Game.loadGame();
+            game = GameNotFoundException.loadGame();
         } catch (GameNotFoundException e) {
-            // Bắt lỗi và hiện Popup (UC 07)
             ViewUtilities.showAlert("Error", "No saved game found!");
-            return; // Dừng lại, không chuyển cảnh
+            return;
         }
 
-        // Chuyển cảnh với dữ liệu cũ
         Node source = (Node) actionEvent.getSource();
         Stage currentStage = (Stage) source.getScene().getWindow();
-        GameController controller = new GameController(game); // Sử dụng constructor Overload
+        GameController controller = new GameController(game);
         showGameView(currentStage, controller);
     }
-    private void showGameView(Stage currentStage, GameController controller) {
 
+    private void showGameView(Stage currentStage, GameController controller) {
+        FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/game-view.fxml"));
+
+        Stage newStage = null;
+        try {
+            fxmlLoader.setControllerFactory(c -> controller);
+            newStage = new Stage();
+            newStage.setTitle("Co Ganh Game");
+            newStage.setScene(new Scene(fxmlLoader.load()));
+            newStage.setResizable(false);
+        } catch (IOException e) {
+            ViewUtilities.showAlert("Error", "Error loading game view", e.getMessage());
+        }
+
+        newStage.setOnShown(event -> currentStage.hide());
+        newStage.setOnHidden(event -> currentStage.show());
+
+        newStage.show();
     }
 
-    @FXML
     @FXML
     public void onHowClick(ActionEvent actionEvent) {
         try {
             Node source = (Node) actionEvent.getSource();
             Stage currentStage = (Stage) source.getScene().getWindow();
-
-            // Nạp giao diện Slide
             FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/presentation-view.fxml"));
             Stage presentationStage = new Stage();
             presentationStage.setTitle("How to Play");
             Scene scene = new Scene(fxmlLoader.load());
             presentationStage.setScene(scene);
-
-            // Ẩn Menu đi, khi nào tắt Slide thì Menu hiện lại
             presentationStage.setOnShown(event -> currentStage.hide());
             presentationStage.setOnHidden(event -> currentStage.show());
 
@@ -75,8 +102,11 @@ public class MenuController {
             ViewUtilities.showAlert("Error", "Error loading presentation view", e.getMessage());
         }
     }
-    
+
     @FXML
     public void onExitClick() {
+        if (ViewUtilities.showConfirm("Exit", "Are you sure you want to exit?")) {
+            System.exit(0);
+        }
     }
 }
