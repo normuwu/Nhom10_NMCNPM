@@ -163,14 +163,44 @@ public class Game implements Serializable {
 
 
     public ArrayList<Piece> getSurroundedPieces() {
-
-        return null;
+        ArrayList<Piece> surroundedPieces = new ArrayList<>();
+        boolean[][] visited = new boolean[Constants.HEIGHT][Constants.WIDTH];
+        for (int row = 0; row < Constants.HEIGHT; row++) {
+            for (int col = 0; col < Constants.WIDTH; col++) {
+                Tile tile = this.board[row][col];
+                if (tile.hasPiece() && !visited[row][col] && tile.getPiece().getSide() != this.currentPlayer.getSide()) {
+                    // for each piece that has not been visited, we use flood fill algorithm to find the group of pieces
+                    // that form a group, if the group is surrounded, we flip the side of the pieces in the group
+                    // and add them to the surrounded pieces
+                    ArrayList<Piece> group = new ArrayList<>();
+                    if (floodFill(row, col, group, visited)) {
+                        flipGroup(group);
+                        surroundedPieces.addAll(group);
+                    }
+                }
+            }
+        }
+        return surroundedPieces;
     }
 
     private boolean floodFill(int row, int col, ArrayList<Piece> group, boolean[][] visited) {
+        // this algorithm is used to find the pieces that form a group then check if the group is surrounded
+        Piece piece = this.board[row][col].getPiece();
+        visited[row][col] = true;
+        group.add(piece);
 
-        return false;
+        boolean isSurrounded = true;
+        ArrayList<Tile> connectedTiles = board[row][col].getConnectedTiles(this.board);
+        for (Tile tile : connectedTiles) {
+            if (!tile.hasPiece()) {
+                isSurrounded = false;
+            } else if (tile.getPiece().getSide() == piece.getSide() && !visited[tile.getRow()][tile.getCol()]) {
+                isSurrounded &= floodFill(tile.getRow(), tile.getCol(), group, visited);
+            }
+        }
+        return isSurrounded;
     }
+
 
     private void flipGroup(ArrayList<Piece> group) {
     }
