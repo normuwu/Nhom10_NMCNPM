@@ -48,16 +48,34 @@ public class MenuController {
         GameController controller = new GameController(game); // Sử dụng constructor Overload
         showGameView(currentStage, controller);
     }
-
-
     private void showGameView(Stage currentStage, GameController controller) {
 
     }
 
     @FXML
+    @FXML
     public void onHowClick(ActionEvent actionEvent) {
-    }
+        try {
+            Node source = (Node) actionEvent.getSource();
+            Stage currentStage = (Stage) source.getScene().getWindow();
 
+            // Nạp giao diện Slide
+            FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/presentation-view.fxml"));
+            Stage presentationStage = new Stage();
+            presentationStage.setTitle("How to Play");
+            Scene scene = new Scene(fxmlLoader.load());
+            presentationStage.setScene(scene);
+
+            // Ẩn Menu đi, khi nào tắt Slide thì Menu hiện lại
+            presentationStage.setOnShown(event -> currentStage.hide());
+            presentationStage.setOnHidden(event -> currentStage.show());
+
+            presentationStage.show();
+        } catch (IOException e) {
+            ViewUtilities.showAlert("Error", "Error loading presentation view", e.getMessage());
+        }
+    }
+    
     @FXML
     public void onExitClick() {
     }
