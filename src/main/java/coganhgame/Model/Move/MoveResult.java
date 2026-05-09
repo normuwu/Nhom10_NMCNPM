@@ -1,4 +1,8 @@
 package coganhgame.Model.Move;
 
-public class MoveResult {
+import coganhgame.Model.Piece;
+
+import java.util.ArrayList;
+
+public record MoveResult(boolean isValidMove, ArrayList<Piece> capturedPieces) {
 }
