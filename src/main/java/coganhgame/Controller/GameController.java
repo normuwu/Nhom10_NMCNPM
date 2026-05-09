@@ -365,7 +365,7 @@ public class GameController {
         timeline.playFromStart();
     }
 
-    private void endGame() {
+  private void endGame() {
         prbTimeLeft.setProgress(1);
         timeline.stop();
         for (PieceComp piece : pieceMap.values()) {
@@ -379,6 +379,9 @@ public class GameController {
         }
     }
 
+
+    
+  
     private void clearOpenHighlight() {
         if (currentTile == null) {
             return;
