@@ -365,20 +365,7 @@ public class GameController {
         timeline.playFromStart();
     }
 
-    private void endGame() {
-        prbTimeLeft.setProgress(1);
-        timeline.stop();
-        for (PieceComp piece : pieceMap.values()) {
-            piece.setDisablePiece();
-        }
-        currentLabel.setText(" win");
-        if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
-            prbTimeLeft.setStyle("-fx-accent: #E21818;");
-        } else {
-            prbTimeLeft.setStyle("-fx-accent: #2666CF;");
-        }
-    }
-
+  
     private void clearOpenHighlight() {
         if (currentTile == null) {
             return;
