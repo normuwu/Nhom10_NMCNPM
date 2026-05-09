@@ -203,7 +203,11 @@ public class Game implements Serializable {
 
 
     private void flipGroup(ArrayList<Piece> group) {
+        for (Piece piece : group) {
+            piece.flipSide();
+        }
     }
+
 
     public ArrayList<Tile> checkOpeningTile(Tile tile, boolean side) {
 
