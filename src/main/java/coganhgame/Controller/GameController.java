@@ -102,6 +102,7 @@ public class GameController {
         }
     };*/
     private final Timeline timeline = new Timeline();
+    private ChangeListener<? super Number> timeLeftListener;
 
     public GameController(String player1Name, String player2Name, int timeLimit) {
         this.game = new Game(player1Name, player2Name, timeLimit);
@@ -132,7 +133,35 @@ public class GameController {
 
 
     private void switchPlayer() {
+        game.getCurrentPlayer().pauseTimer();
+        ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().removeListener(timeLeftListener);
+        ((HumanPlayer) game.getCurrentPlayer()).setTimeLeft(game.getTimeLimit() * 1000);
 
+        if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
+            lblTotalTimeRed.setText("Total time: " + ((double) game.getCurrentPlayer().getTotalTime() / 1000) + "s");
+        } else {
+            lblTotalTimeBlue.setText("Total time: " + ((double) game.getCurrentPlayer().getTotalTime() / 1000) + "s");
+        }
+
+        if (game.isGameOver()) {
+            endGame();
+            return;
+        }
+
+        game.switchPlayer();
+        updateCurrentPlayerLabel();
+
+        ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().addListener(timeLeftListener);
+        game.getCurrentPlayer().playTimer();
+
+        for (PieceComp piece : pieceMap.values()) {
+            if (piece.getSide() == game.getCurrentPlayer().getSide()) {
+                piece.setEnablePiece();
+            } else {
+                piece.setDisablePiece();
+            }
+        }
+        runTimer();
     }
 
     private void updateCurrentPlayerLabel() {
@@ -140,7 +169,16 @@ public class GameController {
     }
 
     private void runTimer() {
-
+        timeline.stop();
+        prbTimeLeft.setProgress(1);
+        if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
+            prbTimeLeft.setRotate(180);
+            prbTimeLeft.setStyle("-fx-accent: #E21818;");
+        } else {
+            prbTimeLeft.setRotate(0);
+            prbTimeLeft.setStyle("-fx-accent: #2666CF;");
+        }
+        timeline.playFromStart();
     }
 
     private void endGame() {
