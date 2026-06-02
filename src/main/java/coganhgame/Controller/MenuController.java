@@ -87,16 +87,15 @@ public class MenuController {
     @FXML
     public void onHowClick(ActionEvent actionEvent) {
         try {
-            Node source = (Node) actionEvent.getSource();
-            Stage currentStage = (Stage) source.getScene().getWindow();
+            Stage currentStage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
+
             FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/presentation-view.fxml"));
             Stage presentationStage = new Stage();
             presentationStage.setTitle("How to Play");
-            Scene scene = new Scene(fxmlLoader.load());
-            presentationStage.setScene(scene);
-            presentationStage.setOnShown(event -> currentStage.hide());
+            presentationStage.setScene(new Scene(fxmlLoader.load()));
             presentationStage.setOnHidden(event -> currentStage.show());
 
+            currentStage.hide();
             presentationStage.show();
         } catch (IOException e) {
             ViewUtilities.showAlert("Error", "Error loading presentation view", e.getMessage());
