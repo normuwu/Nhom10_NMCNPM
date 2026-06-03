@@ -117,47 +117,205 @@ public class Game implements Serializable {
     }
 
     public MoveResult processMove(Move move) {
+        int fromRow = move.fromTile().getRow();
+        int fromCol = move.fromTile().getCol();
+        int toRow = move.toTile().getRow();
+        int toCol = move.toTile().getCol();
+        if (toRow < 0 || toRow >= Constants.HEIGHT || toCol < 0 || toCol >= Constants.WIDTH) {
+            // if the position (row, col) is out of the board, return invalid move
+            return new MoveResult(false, null);
+        }
 
-        return null;
+        Piece piece = this.board[fromRow][fromCol].getPiece();
+        if (this.board[toRow][toCol].hasPiece() || piece.getSide() != this.currentPlayer.getSide()) {
+            // if the tile at (row, col) already has a piece, return invalid move
+            return new MoveResult(false, null);
+        }
+
+        // get the connected tiles of the tile at (oldRow, oldCol)
+        ArrayList<Tile> connectedTiles = board[fromRow][fromCol].getConnectedTiles(this.board);
+        if (connectedTiles.contains(this.board[toRow][toCol])) {
+            // if the tile at (row, col) is in the connected tiles, move the piece to the new position
+            this.board[fromRow][fromCol].removePiece();
+            this.board[toRow][toCol].setPiece(piece);
+            ArrayList<Piece> capturedPieces = new ArrayList<>();
+            capturedPieces.addAll(getCarriedPieces(move.toTile()));
+            capturedPieces.addAll(getSurroundedPieces());
+            if (!capturedPieces.isEmpty()) {
+                // if the captured pieces are not empty, return a capture move
+                this.currentPlayer.increaseTotalPiece(capturedPieces.size());
+                // decrease the number of pieces of the opponent
+                getOpponent().decreaseTotalPiece(capturedPieces.size());
+                return new MoveResult(true, capturedPieces);
+            }
+            return new MoveResult(true, null);
+        }
+
+        return new MoveResult(false, null);
     }
 
     private ArrayList<Piece> getCarriedPieces(Tile toTile) {
+        ArrayList<Piece> carriedPieces = new ArrayList<>();
+        int row = toTile.getRow();
+        int col = toTile.getCol();
+        ArrayList<Tile> connectedTilesOfToTile = toTile.getConnectedTiles(this.board);
 
-        return null;
+        Piece piece = this.board[row][col].getPiece();
+        // loop through all the connected tiles, check each pair of connected tiles
+        for (int i = 0; i < connectedTilesOfToTile.size(); i++) {
+            Tile tile1 = connectedTilesOfToTile.get(i);
+            for (int j = i + 1; j < connectedTilesOfToTile.size(); j++) {
+                Tile tile2 = connectedTilesOfToTile.get(j);
+
+                if (tile1.getRow() + tile2.getRow() != 2 * row || tile1.getCol() + tile2.getCol() != 2 * col) {
+                    continue;
+                }
+
+                if (tile1.hasPiece() && tile2.hasPiece()) {
+                    // if both tiles have pieces, check if the pieces have the same side
+                    Piece piece1 = tile1.getPiece();
+                    Piece piece2 = tile2.getPiece();
+                    if (piece1.getSide() == piece2.getSide() && piece1.getSide() != piece.getSide()) {
+                        // if the pieces have the same side and the same side is different from the side of the piece
+                        carriedPieces.add(piece1);
+                        carriedPieces.add(piece2);
+                        piece1.flipSide();
+                        piece2.flipSide();
+                    }
+                }
+            }
+        }
+
+        return carriedPieces;
     }
 
     public ArrayList<Piece> getSurroundedPieces() {
-
-        return null;
+        ArrayList<Piece> surroundedPieces = new ArrayList<>();
+        boolean[][] visited = new boolean[Constants.HEIGHT][Constants.WIDTH];
+        for (int row = 0; row < Constants.HEIGHT; row++) {
+            for (int col = 0; col < Constants.WIDTH; col++) {
+                Tile tile = this.board[row][col];
+                if (tile.hasPiece() && !visited[row][col] && tile.getPiece().getSide() != this.currentPlayer.getSide()) {
+                    // for each piece that has not been visited, we use flood fill algorithm to find the group of pieces
+                    // that form a group, if the group is surrounded, we flip the side of the pieces in the group
+                    // and add them to the surrounded pieces
+                    ArrayList<Piece> group = new ArrayList<>();
+                    if (floodFill(row, col, group, visited)) {
+                        flipGroup(group);
+                        surroundedPieces.addAll(group);
+                    }
+                }
+            }
+        }
+        return surroundedPieces;
     }
 
     private boolean floodFill(int row, int col, ArrayList<Piece> group, boolean[][] visited) {
+        // this algorithm is used to find the pieces that form a group then check if the group is surrounded
+        Piece piece = this.board[row][col].getPiece();
+        visited[row][col] = true;
+        group.add(piece);
 
-        return false;
+        boolean isSurrounded = true;
+        ArrayList<Tile> connectedTiles = board[row][col].getConnectedTiles(this.board);
+        for (Tile tile : connectedTiles) {
+            if (!tile.hasPiece()) {
+                isSurrounded = false;
+            } else if (tile.getPiece().getSide() == piece.getSide() && !visited[tile.getRow()][tile.getCol()]) {
+                isSurrounded &= floodFill(tile.getRow(), tile.getCol(), group, visited);
+            }
+        }
+        return isSurrounded;
     }
 
     private void flipGroup(ArrayList<Piece> group) {
+        for (Piece piece : group) {
+            piece.flipSide();
+        }
     }
 
     public ArrayList<Tile> checkOpeningTile(Tile tile, boolean side) {
+        ArrayList<Tile> connectedTiles = tile.getConnectedTiles(board);
+        ArrayList<Tile> carriedTiles = new ArrayList<>();
+        // loop through all the connected tiles, check if there is any piece of the opponent can move to the tile
+        boolean canMove = false;
+        for (Tile connectedTile : connectedTiles) {
+            if (connectedTile.hasPiece() && connectedTile.getPiece().getSide() == !side) {
+                canMove = true;
+            }
+        }
+        if (!canMove) {
+            return carriedTiles;
+        }
+        // loop through all the connected tiles, check each pair of connected tiles
+        for (int i = 0; i < connectedTiles.size(); i++) {
+            Tile tile1 = connectedTiles.get(i);
+            for (int j = i + 1; j < connectedTiles.size(); j++) {
+                Tile tile2 = connectedTiles.get(j);
 
-        return null;
+                if (tile1.getRow() + tile2.getRow() != 2 * tile.getRow() || tile1.getCol() + tile2.getCol() != 2 * tile.getCol()) {
+                    continue;
+                }
+
+                if (tile1.hasPiece() && tile2.hasPiece()) {
+                    // if both tiles have pieces, check if the pieces have the same side
+                    Piece piece1 = tile1.getPiece();
+                    Piece piece2 = tile2.getPiece();
+                    if (piece1.getSide() == piece2.getSide() && piece1.getSide() == side) {
+                        // if the pieces have the same side, add the tiles to the carried tiles
+                        carriedTiles.add(tile1);
+                        carriedTiles.add(tile2);
+                    }
+                }
+            }
+        }
+
+        return carriedTiles;
     }
 
     public boolean isGameOver() {
-        return false;
+        return getCurrentPlayer().getTotalPiece() == Constants.TOTAL_PIECE || getOpponent().getTotalPiece() == Constants.TOTAL_PIECE;
     }
 
     public void resetGame() {
-
+        this.currentPlayer = this.player1;
+        ((HumanPlayer) this.player1).setTimeLeft(this.timeLimit * 1000);
+        ((HumanPlayer) this.player2).setTimeLeft(this.timeLimit * 1000); // Đã bỏ check instanceof
+        this.player1.increaseTotalPiece(Constants.TOTAL_PIECE / 2 - this.player1.getTotalPiece());
+        this.player2.increaseTotalPiece(Constants.TOTAL_PIECE / 2 - this.player2.getTotalPiece());
+        this.player1.setTotalTime(0);
+        this.player2.setTotalTime(0);
+        this.openingTile = null;
+        initBoard();
     }
 
     public void saveGame() {
-
+        try {
+            FileOutputStream fos = new FileOutputStream("game_state.txt");
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(this);
+            oos.close();
+            fos.close();
+        } catch (IOException ex) {
+            ViewUtilities.showAlert("Error", "Error saving game", ex.getMessage());
+        }
     }
 
-    public static Game loadGame() {
-
-        return null;
+    public static Game loadGame() throws GameNotFoundException {
+        Game game = null;
+        try {
+            File file = new File("game_state.txt");
+            if (!file.exists() || file.length() == 0) {
+                throw new GameNotFoundException();
+            }
+            FileInputStream fis = new FileInputStream(file);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            game = (Game) ois.readObject();
+            ois.close();
+            fis.close();
+        } catch (IOException | ClassNotFoundException ex) {
+            ViewUtilities.showAlert("Error", "Error loading game", ex.getMessage());
+        }
+        return game;
     }
 }
