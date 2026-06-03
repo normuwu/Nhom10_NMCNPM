@@ -102,6 +102,7 @@ public class GameController {
         }
     };
     private final Timeline timeline = new Timeline();
+    private ChangeListener<? super Number> timeLeftListener;
 
     public GameController(String player1Name, String player2Name, int timeLimit) {
         this.game = new Game(player1Name, player2Name, timeLimit);
