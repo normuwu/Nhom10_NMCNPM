@@ -56,3 +56,76 @@ public class BotPlayer extends Player {
         return bestMoves.get((int) (Math.random() * bestMoves.size()));
     }
 
+    /** Minimax with Alpha-Beta pruning */
+    private int minimax(GameWithBot game, int depth, int alpha, int beta, boolean maximizingPlayer) {
+        positionCount++;
+        if (depth == 0 || game.isGameOver()) {
+            return evaluateBoard(game.getBoard());
+        }
+        if (maximizingPlayer) {
+            int maxEval = -9999;
+            for (Move move : game.generateMoves()) {
+                MoveResult moveResult = game.makeMove(move);
+                int eval = minimax(game, depth - 1, alpha, beta, false);
+                game.undoMove(move, moveResult);
+                maxEval = Math.max(maxEval, eval);
+                alpha = Math.max(alpha, eval);
+                if (beta <= alpha) break;
+            }
+            return maxEval;
+        } else {
+            int minEval = 9999;
+            for (Move move : game.generateMoves()) {
+                MoveResult moveResult = game.makeMove(move);
+                int eval = minimax(game, depth - 1, alpha, beta, true);
+                game.undoMove(move, moveResult);
+                minEval = Math.min(minEval, eval);
+                beta = Math.min(beta, eval);
+                if (beta <= alpha) break;
+            }
+            return minEval;
+        }
+    }
+
+    /** Position value matrix — center tiles are more valuable */
+    private final int[][] favourablePosition = {
+            {-1, 0, 1, 0, -1},
+            {0, 0, 1, 0, 0},
+            {1, 1, 2, 1, 1},
+            {0, 0, 1, 0, 0},
+            {-1, 0, 1, 0, -1}
+    };
+
+    /** Evaluate the board from the Bot's perspective (higher = better for Bot/Blue) */
+    private int evaluateBoard(Tile[][] board) {
+        int totalValue = 0;
+        for (int row = 0; row < Constants.HEIGHT; row++) {
+            for (int col = 0; col < Constants.WIDTH; col++) {
+                if (!board[row][col].hasPiece()) continue;
+                Piece piece = board[row][col].getPiece();
+                if (piece.getSide() == Constants.RED_SIDE) {
+                    totalValue -= 10;                     // opponent piece
+                    totalValue -= favourablePosition[row][col]; // subtract position value
+                } else {
+                    totalValue += 10;                     // bot's piece
+                    totalValue += favourablePosition[row][col]; // add position value
+                }
+            }
+        }
+        return totalValue;
+    }
+
+    @Override
+    public void playTimer() {
+        startTime = System.currentTimeMillis();
+    }
+
+    @Override
+    public void pauseTimer() {
+        long endTime = System.currentTimeMillis();
+        int time = (int) (endTime - startTime);
+        totalTime += time;
+    }
+}
+
+
