@@ -65,6 +65,12 @@
                     <Cursor fx:constant="HAND"/>
                 </cursor>
             </Button>
+            // Thêm nút Leaderboard
+            <Button fx:id="btnLeaderboard" mnemonicParsing="false" onAction="#onLeaderboardClick" prefHeight="30.0"
+                     prefWidth="110.0" text="Leaderboard">
+            <VBox.margin><Insets bottom="3.0" left="3.0" right="3.0" top="3.0"/></VBox.margin>
+            <cursor><Cursor fx:constant="HAND"/></cursor>
+            </Button>
         </VBox>
     </center>
     <top>
