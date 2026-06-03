@@ -50,45 +50,53 @@ public class MenuController {
 
     @FXML
     public void onContinueClick(ActionEvent actionEvent) {
+        Game game;
         try {
-            Game game = Game.loadGame();
-            Stage currentStage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-            showGameView(currentStage, new GameController(game));
+            game = Game.loadGame();
         } catch (GameNotFoundException e) {
             ViewUtilities.showAlert("Error", "No saved game found!");
+            return;
         }
+
+        Node source = (Node) actionEvent.getSource();
+        Stage currentStage = (Stage) source.getScene().getWindow();
+        GameController controller = new GameController(game);
+        showGameView(currentStage, controller);
     }
 
     private void showGameView(Stage currentStage, GameController controller) {
-        try {
-            FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/game-view.fxml"));
-            fxmlLoader.setControllerFactory(c -> controller);
+        FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/game-view.fxml"));
 
-            Stage newStage = new Stage();
+        Stage newStage = null;
+        try {
+            fxmlLoader.setControllerFactory(c -> controller);
+            newStage = new Stage();
             newStage.setTitle("Co Ganh Game");
             newStage.setScene(new Scene(fxmlLoader.load()));
             newStage.setResizable(false);
-            newStage.setOnHidden(event -> currentStage.show());
-
-            currentStage.hide();
-            newStage.show();
         } catch (IOException e) {
             ViewUtilities.showAlert("Error", "Error loading game view", e.getMessage());
         }
+
+        newStage.setOnShown(event -> currentStage.hide());
+        newStage.setOnHidden(event -> currentStage.show());
+
+        newStage.show();
     }
 
     @FXML
     public void onHowClick(ActionEvent actionEvent) {
         try {
-            Stage currentStage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-
+            Node source = (Node) actionEvent.getSource();
+            Stage currentStage = (Stage) source.getScene().getWindow();
             FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/presentation-view.fxml"));
             Stage presentationStage = new Stage();
             presentationStage.setTitle("How to Play");
-            presentationStage.setScene(new Scene(fxmlLoader.load()));
+            Scene scene = new Scene(fxmlLoader.load());
+            presentationStage.setScene(scene);
+            presentationStage.setOnShown(event -> currentStage.hide());
             presentationStage.setOnHidden(event -> currentStage.show());
 
-            currentStage.hide();
             presentationStage.show();
         } catch (IOException e) {
             ViewUtilities.showAlert("Error", "Error loading presentation view", e.getMessage());
