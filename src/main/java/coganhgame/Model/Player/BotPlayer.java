@@ -8,10 +8,7 @@ import coganhgame.Model.Piece;
 import coganhgame.Model.Tile.Tile;
 import java.util.ArrayList;
 
-/**
- * Bot AI player using Minimax algorithm with Alpha-Beta pruning.
- * Difficulty levels: Easy (depth=3), Medium (depth=5), Hard (depth=7)
- */
+
 public class BotPlayer extends Player {
     private final int botLevel;
     private long startTime;
@@ -23,10 +20,7 @@ public class BotPlayer extends Player {
     }
 
     public int getBotLevel() { return botLevel; }
-    /**
-     * Evaluates all possible moves and returns the best one using Minimax + Alpha-Beta.
-     * Immediately picks winning moves. Otherwise picks the move with highest score.
-     */
+
     public Move getBestMove(GameWithBot game) {
         Move bestMove;
         int bestScore = -9999;
@@ -56,7 +50,6 @@ public class BotPlayer extends Player {
         return bestMoves.get((int) (Math.random() * bestMoves.size()));
     }
 
-    /** Minimax with Alpha-Beta pruning */
     private int minimax(GameWithBot game, int depth, int alpha, int beta, boolean maximizingPlayer) {
         positionCount++;
         if (depth == 0 || game.isGameOver()) {
@@ -87,7 +80,6 @@ public class BotPlayer extends Player {
         }
     }
 
-    /** Position value matrix — center tiles are more valuable */
     private final int[][] favourablePosition = {
             {-1, 0, 1, 0, -1},
             {0, 0, 1, 0, 0},
@@ -96,7 +88,6 @@ public class BotPlayer extends Player {
             {-1, 0, 1, 0, -1}
     };
 
-    /** Evaluate the board from the Bot's perspective (higher = better for Bot/Blue) */
     private int evaluateBoard(Tile[][] board) {
         int totalValue = 0;
         for (int row = 0; row < Constants.HEIGHT; row++) {
