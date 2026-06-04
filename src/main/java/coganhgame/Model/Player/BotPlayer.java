@@ -22,28 +22,32 @@ public class BotPlayer extends Player {
     public int getBotLevel() { return botLevel; }
 
     public Move getBestMove(GameWithBot game) {
+        Move bestMove;
+        int bestScore = -9999;
         ArrayList<Move> allMoves = game.generateMoves();
-        int bestScore = Integer.MIN_VALUE;
-        Move bestMove = null;
+        int[] scores = new int[allMoves.size()];
+        ArrayList<Move> bestMoves = new ArrayList<>();
 
-        for (Move move : allMoves) {
+        for (int i = 0; i < allMoves.size(); i++) {
+            Move move = allMoves.get(i);
             MoveResult moveResult = game.makeMove(move);
-
             if (game.isGameOver()) {
-                game.undoMove(move, moveResult);
-                return move; // nước thắng → trả về ngay, không cần tìm thêm
+                bestMoves.add(move); // winning move — take it immediately
+            } else {
+                int score = minimax(game, this.botLevel - 1, -10000, 10000, false);
+                scores[i] = score;
+                bestScore = Math.max(bestScore, score);
             }
-
-            int score = minimax(game, this.botLevel - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
             game.undoMove(move, moveResult);
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
         }
 
-        return bestMove;
+        if (!bestMoves.isEmpty()) {
+            return bestMoves.get((int) (Math.random() * bestMoves.size()));
+        }
+        for (int i = 0; i < allMoves.size(); i++) {
+            if (scores[i] == bestScore) bestMoves.add(allMoves.get(i));
+        }
+        return bestMoves.get((int) (Math.random() * bestMoves.size()));
     }
 
     private int minimax(GameWithBot game, int depth, int alpha, int beta, boolean maximizingPlayer) {
