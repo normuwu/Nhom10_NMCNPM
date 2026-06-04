@@ -26,7 +26,8 @@ public class MenuController {
     @FXML public Button btnLeaderboard;
     public Button btnExit;
 
-   ●@FXML
+    //Sửa lại method onNewGameClick
+    @FXML
     protected void onNewGameClick(ActionEvent actionEvent) {
         Node source = (Node) actionEvent.getSource();
         Stage currentStage = (Stage) source.getScene().getWindow();
@@ -107,6 +108,26 @@ public class MenuController {
     public void onExitClick() {
         if (ViewUtilities.showConfirm("Exit", "Are you sure you want to exit?")) {
             System.exit(0);
+        }
+    }
+
+    // Thêm method onLeaderboardClick
+    @FXML
+    public void onLeaderboardClick(ActionEvent actionEvent) {
+        try {
+            Node source = (Node) actionEvent.getSource();
+            Stage currentStage = (Stage) source.getScene().getWindow();
+            FXMLLoader fxmlLoader = new FXMLLoader(
+                    GameApplication.class.getResource("/View/leaderboard-view.fxml"));
+            Stage leaderboardStage = new Stage();
+            leaderboardStage.setTitle("Match History & Leaderboard");
+            leaderboardStage.setScene(new Scene(fxmlLoader.load()));
+            leaderboardStage.setResizable(false);
+            leaderboardStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            leaderboardStage.initOwner(currentStage);
+            leaderboardStage.show();
+        } catch (IOException e) {
+            ViewUtilities.showAlert("Error", "Error loading leaderboard", e.getMessage());
         }
     }
 }
