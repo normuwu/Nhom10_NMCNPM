@@ -22,30 +22,30 @@ public class MenuController {
     public Button btnContinue;
     @FXML
     public Button btnHow;
-    @FXML
+    //Thêm nút btnLeaderboard
+    @FXML public Button btnLeaderboard;
     public Button btnExit;
 
-    @FXML
+   ●@FXML
     protected void onNewGameClick(ActionEvent actionEvent) {
         Node source = (Node) actionEvent.getSource();
         Stage currentStage = (Stage) source.getScene().getWindow();
-
-
-        GameSettings gameSettings = ViewUtilities.get2PlayersSettings();
-
-        if (gameSettings == null) {
-
-            return;
+        String gameMode = ViewUtilities.showGameOptions("Choose Game Mode",
+                "Choose Game Mode", "2 Players", "Play With Bot");
+        if (gameMode == null || gameMode.isEmpty()) return;
+        final GameController[] controller = {null};
+        if (gameMode.equals("2 Players")) {
+            GameSettings gameSettings = ViewUtilities.get2PlayersSettings();
+            if (gameSettings == null) return;
+            controller[0] = new GameController(gameSettings.getPlayer1Name(),
+                    gameSettings.getPlayer2Name(), gameSettings.getGameTime());
+        } else if (gameMode.equals("Play With Bot")) {
+            GameSettings gameSettings = ViewUtilities.getPlayWithBotSettings();
+            if (gameSettings == null) return;
+            controller[0] = new GameController(gameSettings.getPlayer1Name(),
+                    gameSettings.getGameTime(), gameSettings.getBotLevel());
         }
-
-
-        GameController controller = new GameController(
-                gameSettings.getPlayer1Name(),
-                gameSettings.getPlayer2Name(),
-                gameSettings.getGameTime()
-        );
-
-        showGameView(currentStage, controller);
+        showGameView(currentStage, controller[0]);
     }
 
     @FXML
