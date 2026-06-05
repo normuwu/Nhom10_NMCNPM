@@ -140,6 +140,10 @@ public class GameController {
         this.botLevel = (game.getPlayer2() instanceof BotPlayer) ? ((BotPlayer) game.getPlayer2()).getBotLevel() : 0;
     }
 
+    // Thêm initialized
+    @FXML
+    private boolean initialized = false;
+
     @FXML
     public void initialize() {
         initViewBoard();
@@ -168,6 +172,16 @@ public class GameController {
                 openPieceComp.highlightOpen();
             }
         }
+
+        // Thêm bind undo/redo buttom
+        // Bind Undo/Redo button disable property (only once to avoid IllegalStateException)
+        if (!initialized) {
+            btnUndo.disableProperty().bind(undoRedoManager.canUndoProperty().not());
+            btnRedo.disableProperty().bind(undoRedoManager.canRedoProperty().not());
+            initialized = true;
+        }
+        undoRedoManager.clear();
+        gameStartTime = System.currentTimeMillis();
 
         ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().addListener(timeLeftListener);
         game.getCurrentPlayer().playTimer();
