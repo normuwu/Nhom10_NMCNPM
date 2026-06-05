@@ -5,18 +5,31 @@ import coganhgame.Model.Tile.Tile;
 import coganhgame.Utilities.Constants;
 
 /**
- * UC20 - Undo Move
- * UC21 - Redo Move
- * Lưu trữ toàn bộ trạng thái game để phục hồi khi Undo/Redo
+ * UC20 Undo Move
+ * UC21 Redo Move
+ * Lưu trữ trạng thái game để phục hồi khi Undo/Redo
  */
 public class UndoSnapshot {
 
+    /** Piece at each board position: null if empty */
     private final Piece[][] pieceGrid;
+
+    /** Total piece count of player 1 before this move */
     private final int player1PieceCount;
+
+    /** Total piece count of player 2 before this move */
     private final int player2PieceCount;
+
+    /** Whether player 1 was the current player before this move */
     private final boolean currentPlayerIsPlayer1;
+
+    /** Whether there was an opening tile */
     private final boolean hasOpeningTile;
+
+    /** Opening tile row (meaningful only if hasOpeningTile is true) */
     private final int openingRow;
+
+    /** Opening tile col (meaningful only if hasOpeningTile is true) */
     private final int openingCol;
 
     /**
@@ -24,27 +37,23 @@ public class UndoSnapshot {
      * UC21 Main Flow 21.1.3
      * Tạo snapshot lưu trạng thái hiện tại của game
      */
-    public UndoSnapshot(Tile[][] board,
-                        int player1PieceCount,
-                        int player2PieceCount,
-                        boolean currentPlayerIsPlayer1,
-                        boolean hasOpeningTile,
-                        int openingRow,
-                        int openingCol) {
+    public UndoSnapshot(Tile[][] board, int player1PieceCount, int player2PieceCount,
+                        boolean currentPlayerIsPlayer1, boolean hasOpeningTile,
+                        int openingRow, int openingCol) {
 
         // UC20 Main Flow 20.1.4
         // UC21 Main Flow 21.1.3
-        // Sao chép trạng thái bàn cờ
+        // Sao chép toàn bộ trạng thái bàn cờ
         this.pieceGrid = deepCopyPieceGrid(board);
 
         // UC20 Main Flow 20.1.4
         // UC21 Main Flow 21.1.3
-        // Lưu số quân của Player 1
+        // Lưu số quân Player 1
         this.player1PieceCount = player1PieceCount;
 
         // UC20 Main Flow 20.1.4
         // UC21 Main Flow 21.1.3
-        // Lưu số quân của Player 2
+        // Lưu số quân Player 2
         this.player2PieceCount = player2PieceCount;
 
         // UC20 Main Flow 20.1.4
@@ -54,7 +63,7 @@ public class UndoSnapshot {
 
         // UC20 Main Flow 20.1.4
         // UC21 Main Flow 21.1.3
-        // Lưu trạng thái Opening
+        // Lưu trạng thái Opening Tile
         this.hasOpeningTile = hasOpeningTile;
 
         this.openingRow = openingRow;
@@ -70,14 +79,17 @@ public class UndoSnapshot {
 
         // UC20 Main Flow 20.1.6
         // UC21 Main Flow 21.1.5
-        // Khôi phục trạng thái bàn cờ
+        // Khôi phục trạng thái các quân cờ trên bàn cờ
         for (int r = 0; r < Constants.HEIGHT; r++) {
             for (int c = 0; c < Constants.WIDTH; c++) {
 
                 board[r][c].removePiece();
 
                 if (pieceGrid[r][c] != null) {
-                    board[r][c].setPiece(pieceGrid[r][c]);
+
+                    Piece restored = pieceGrid[r][c];
+
+                    board[r][c].setPiece(restored);
                 }
             }
         }
@@ -143,5 +155,23 @@ public class UndoSnapshot {
         }
 
         return copy;
+    }
+
+    // --- Getters (for debugging / display) ---
+
+    public int getPlayer1PieceCount() {
+        return player1PieceCount;
+    }
+
+    public int getPlayer2PieceCount() {
+        return player2PieceCount;
+    }
+
+    public boolean isCurrentPlayerPlayer1() {
+        return currentPlayerIsPlayer1;
+    }
+
+    public boolean hasOpeningTile() {
+        return hasOpeningTile;
     }
 }
