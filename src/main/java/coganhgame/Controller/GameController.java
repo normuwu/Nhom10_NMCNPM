@@ -411,6 +411,46 @@ public class GameController {
         }
     }
 
+/**
+ * UC21: Redo Move
+ * Thực hiện lại nước đi vừa bị Undo
+ */
+@FXML
+public void onBtnRedoClick() {
+
+    // UC21 Main Flow 21.1.2
+    // Lấy trạng thái gần nhất từ Redo Stack
+    UndoSnapshot afterState = undoRedoManager.popRedo();
+
+    // UC21 Main Flow 21.1.3
+    // Kiểm tra có trạng thái để Redo hay không
+    if (afterState != null) {
+
+        // UC21 Main Flow 21.1.4
+        // Lưu trạng thái hiện tại trước khi Redo
+        UndoSnapshot beforeState = captureSnapshot();
+
+        // UC21 Main Flow 21.1.5
+        // Đưa trạng thái hiện tại vào Undo Stack
+        undoRedoManager.pushUndo(beforeState);
+
+        // UC21 Main Flow 21.1.6
+        // Khôi phục trạng thái sau nước đi
+        restoreViewFromSnapshot(afterState);
+
+        // UC21 Main Flow 21.1.7
+        // Khởi động lại bộ đếm thời gian
+        timeline.stop();
+
+        // UC21 Main Flow 21.1.7
+        // Chạy lại timer cho lượt hiện tại
+        runTimer();
+    }
+
+    // UC21 Alternative Flow 21.2.1
+    // Redo Stack rỗng => không thực hiện Redo
+}
+    
     @FXML
     public void onBtnOpenClick() {
         vbRed.getChildren().remove(hbOpenRed);
