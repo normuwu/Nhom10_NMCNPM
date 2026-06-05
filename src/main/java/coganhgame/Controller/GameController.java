@@ -566,4 +566,70 @@ public class GameController {
 
         executor.execute(botMoveTask);
     }
+
+    // UNDO/REDO METHODS
+    /** Capture current game state for Undo */
+    private UndoSnapshot captureSnapshot() {
+        return new UndoSnapshot(
+                game.getBoard(),
+                game.getPlayer1().getTotalPiece(),
+                game.getPlayer2().getTotalPiece(),
+                game.getCurrentPlayer() == game.getPlayer1(),
+                game.isOpening(),
+                game.isOpening() ? game.getOpeningTile().getRow() : -1,
+                game.isOpening() ? game.getOpeningTile().getCol() : -1
+        );
+    }
+
+    /** Restore view after Undo/Redo snapshot restoration */
+    private void restoreViewFromSnapshot(UndoSnapshot snapshot) {
+        snapshot.restore(game, game.getBoard());
+        pieceCompGroup.getChildren().clear();
+        pieceMap.clear();
+        Tile[][] board = game.getBoard();
+        for (int r = 0; r < Constants.HEIGHT; r++) {
+            for (int c = 0; c < Constants.WIDTH; c++) {
+                if (board[r][c].hasPiece()) {
+                    PieceComp pc = makePieceComp(board[r][c].getPiece().getSide(), r, c);
+                    pieceCompGroup.getChildren().add(pc);
+                    pieceMap.put(board[r][c].getPiece(), pc);
+                }
+            }
+        }
+        for (PieceComp pc : pieceMap.values()) {
+            if (pc.getSide() == game.getCurrentPlayer().getSide()) pc.setEnablePiece();
+            else pc.setDisablePiece();
+        }
+        lblTotalPiecesRed.setText("x " + game.getPlayer1().getTotalPiece());
+        lblTotalPiecesBlue.setText("x " + game.getPlayer2().getTotalPiece());
+        lblTotalTimeRed.setText("Total time: " + ((double) game.getPlayer1().getTotalTime() / 1000) + "s");
+        lblTotalTimeBlue.setText("Total time: " + ((double) game.getPlayer2().getTotalTime() / 1000) + "s");
+        updateCurrentPlayerLabel();
+        currentTile = null;
+        draggedTile = null;
+    }
+
+    @FXML
+    public void onBtnUndoClick() {
+        UndoSnapshot beforeState = undoRedoManager.popUndo();
+        if (beforeState != null) {
+            UndoSnapshot afterState = captureSnapshot();
+            undoRedoManager.pushRedo(afterState);
+            restoreViewFromSnapshot(beforeState);
+            timeline.stop();
+            runTimer();
+        }
+    }
+
+    @FXML
+    public void onBtnRedoClick() {
+        UndoSnapshot afterState = undoRedoManager.popRedo();
+        if (afterState != null) {
+            UndoSnapshot beforeState = captureSnapshot();
+            undoRedoManager.pushUndo(beforeState);
+            restoreViewFromSnapshot(afterState);
+            timeline.stop();
+            runTimer();
+        }
+    }
 }
