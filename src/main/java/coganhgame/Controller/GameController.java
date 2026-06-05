@@ -11,6 +11,12 @@ import coganhgame.Model.Tile.Tile;
 import coganhgame.Utilities.AdaptiveUtilities;
 import coganhgame.Utilities.Constants;
 import coganhgame.Utilities.ViewUtilities;
+import coganhgame.Model.Game.MatchRecord;
+import coganhgame.Model.Game.UndoSnapshot;
+import coganhgame.Model.Game.GameWithBot;
+import coganhgame.Model.Player.BotPlayer;
+import coganhgame.Model.Player.Player;
+import coganhgame.Service.MatchHistoryManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -32,6 +38,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import coganhgame.Service.UndoRedoManager;
 
 public class GameController {
     private final Game game;
@@ -95,6 +103,14 @@ public class GameController {
     private final TileComp[][] viewBoard = new TileComp[Constants.WIDTH][Constants.HEIGHT];
     private final Map<Piece, PieceComp> pieceMap = new HashMap<>();
 
+    // Undo/Redo
+    private final UndoRedoManager undoRedoManager = new UndoRedoManager();
+
+    // Match History
+    private long gameStartTime;
+    private String gameMode = "2 Players";
+    private int botLevel = 0;
+
     private final ChangeListener<Number> timeLeftListener = (observable, oldValue, newValue) -> {
         if (newValue.intValue() <= 0) {
             clearOpenHighlight();
@@ -104,12 +120,24 @@ public class GameController {
     private final Timeline timeline = new Timeline();
     private ChangeListener<? super Number> timeLeftListener;
 
+
+    // Sửa GameController
     public GameController(String player1Name, String player2Name, int timeLimit) {
         this.game = new Game(player1Name, player2Name, timeLimit);
+        this.gameMode = "2 Players";
+        this.botLevel = 0;
+    }
+
+    public GameController(String player1Name, int timeLimit, int botLevel) {
+        this.game = new GameWithBot(player1Name, timeLimit, botLevel);
+        this.gameMode = "Play With Bot";
+        this.botLevel = botLevel;
     }
 
     public GameController(Game game) {
         this.game = game;
+        this.gameMode = (game instanceof GameWithBot) ? "Play With Bot" : "2 Players";
+        this.botLevel = (game.getPlayer2() instanceof BotPlayer) ? ((BotPlayer) game.getPlayer2()).getBotLevel() : 0;
     }
 
     @FXML
