@@ -19,8 +19,10 @@ import coganhgame.Model.Player.Player;
 import coganhgame.Service.MatchHistoryManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -518,5 +520,50 @@ public class GameController {
                 currentStage.hide();
             }
         }
+    }
+
+    //Thêm botmakemove
+    private void botMakeMove() {
+        Task<Move> botMoveTask = new Task<>() {
+            @Override
+            protected Move call() {
+                BotPlayer botPlayer = (BotPlayer) game.getCurrentPlayer();
+                botPlayer.playTimer();
+                Move botMove = botPlayer.getBestMove((GameWithBot) game);
+                botPlayer.pauseTimer();
+                return botMove;
+            }
+        };
+
+        botMoveTask.setOnSucceeded(event -> {
+            Move botMove = botMoveTask.getValue();
+
+            // Push snapshot before bot executes the move
+            UndoSnapshot botSnapshot = captureSnapshot();
+            undoRedoManager.pushSnapshot(botSnapshot);
+
+            PieceComp botPieceComp = pieceMap.get(botMove.fromTile().getPiece());
+            MoveResult botMoveResult = game.processMove(botMove);
+            clearOpenHighlight();
+            botPieceComp.slowMove(botMove.toTile().getRow(), botMove.toTile().getCol());
+
+            PauseTransition pause = new PauseTransition(Duration.seconds(Constants.BOT_MOVE_DELAY));
+            pause.setOnFinished(e -> {
+                if (botMoveResult.capturedPieces() != null) {
+                    for (Piece capturedModelPiece : botMoveResult.capturedPieces()) {
+                        PieceComp capturedPieceComp = pieceMap.get(capturedModelPiece);
+                        capturedPieceComp.flipSide();
+                    }
+                }
+                botPositionCount = BotPlayer.positionCount;
+                updateBotPositionCountLabel();
+                lblTotalTimeBlue.setText("Total time: " + ((double) game.getPlayer2().getTotalTime() / 1000) + "s");
+                BotPlayer.positionCount = 0;
+                switchPlayer();
+            });
+            pause.play();
+        });
+
+        executor.execute(botMoveTask);
     }
 }
