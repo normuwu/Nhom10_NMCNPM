@@ -431,6 +431,20 @@ public class GameController {
         } else {
             prbTimeLeft.setStyle("-fx-accent: #2666CF;");
         }
+
+        // Save match record
+         Player winner = game.getCurrentPlayer();
+         Player loser = game.getOpponent();
+        long duration = (System.currentTimeMillis() - gameStartTime) / 1000;
+        MatchRecord record = new MatchRecord(
+              game.getPlayer1().getName(),
+              game.getPlayer2().getName(),
+              winner.getName(),
+              gameMode,
+              botLevel,
+              duration
+        );
+        MatchHistoryManager.saveRecord(record);
     }
 
 
