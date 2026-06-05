@@ -311,6 +311,10 @@ public class GameController {
             }
             clearOpenHighlight();
 
+            // Thêm undosnapshot
+            // Capture snapshot BEFORE executing the move
+            UndoSnapshot snapshot = captureSnapshot();
+
             MoveResult moveResult = game.processMove(move);
 
             if (moveResult.isValidMove()) {
@@ -342,6 +346,11 @@ public class GameController {
                         }
                     }
                 } else {
+                    //thêm điều kiện undoredomanager
+                    // Push snapshot only after a successful move
+                    if (moveResult.isValidMove()) {
+                        undoRedoManager.pushSnapshot(snapshot);
+                    }
                     switchPlayer();
                 }
             } else {
