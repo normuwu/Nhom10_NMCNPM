@@ -1,3 +1,11 @@
+package coganhgame.Service;
+
+import coganhgame.Model.Game.UndoSnapshot;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
 public class UndoRedoManager {
 
     private static final int MAX_UNDO = 50;
