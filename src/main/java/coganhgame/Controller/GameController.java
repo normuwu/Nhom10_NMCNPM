@@ -410,7 +410,121 @@ public class GameController {
             timeline.play();
         }
     }
+ // UC20 Main Flow 20.1.4
+// UC21 Main Flow 21.1.3
+// Tạo snapshot lưu trạng thái hiện tại của game
+    private UndoSnapshot captureSnapshot() {
+        return new UndoSnapshot(
+                // Lưu trạng thái bàn cờ
+                game.getBoard(),
+                // Lưu số quân Player 1
+                game.getPlayer1().getTotalPiece(),
+                // Lưu số quân Player 2
+                game.getPlayer2().getTotalPiece(),
+                // Lưu người chơi hiện tại
+                game.getCurrentPlayer() == game.getPlayer1(),
+                // Lưu trạng thái Opening
+                game.isOpening(),
+                game.isOpening() ? game.getOpeningTile().getRow() : -1,
+                game.isOpening() ? game.getOpeningTile().getCol() : -1
+        );
+    }
+    
+/**
+ * UC20 Main Flow 20.1.6
+ * UC21 Main Flow 21.1.6
+ * Khôi phục giao diện sau khi Undo/Redo
+ */
+private void restoreViewFromSnapshot(UndoSnapshot snapshot) {
 
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Khôi phục dữ liệu game từ snapshot
+    snapshot.restore(game, game.getBoard());
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Xóa toàn bộ quân cờ hiện tại trên giao diện
+    pieceCompGroup.getChildren().clear();
+    pieceMap.clear();
+
+    Tile[][] board = game.getBoard();
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Tạo lại giao diện bàn cờ theo trạng thái đã phục hồi
+    for (int r = 0; r < Constants.HEIGHT; r++) {
+        for (int c = 0; c < Constants.WIDTH; c++) {
+
+            if (board[r][c].hasPiece()) {
+
+                PieceComp pc = makePieceComp(
+                        board[r][c].getPiece().getSide(),
+                        r,
+                        c);
+
+                pieceCompGroup.getChildren().add(pc);
+
+                pieceMap.put(board[r][c].getPiece(), pc);
+            }
+        }
+    }
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Chỉ cho phép người chơi hiện tại thao tác quân cờ
+    for (PieceComp pc : pieceMap.values()) {
+
+        if (pc.getSide() == game.getCurrentPlayer().getSide()) {
+
+            pc.setEnablePiece();
+
+        } else {
+
+            pc.setDisablePiece();
+        }
+    }
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Cập nhật số lượng quân Đỏ
+    lblTotalPiecesRed.setText(
+            "x " + game.getPlayer1().getTotalPiece());
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Cập nhật số lượng quân Xanh
+    lblTotalPiecesBlue.setText(
+            "x " + game.getPlayer2().getTotalPiece());
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Cập nhật tổng thời gian phe Đỏ
+    lblTotalTimeRed.setText(
+            "Total time: "
+                    + ((double) game.getPlayer1().getTotalTime() / 1000)
+                    + "s");
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Cập nhật tổng thời gian phe Xanh
+    lblTotalTimeBlue.setText(
+            "Total time: "
+                    + ((double) game.getPlayer2().getTotalTime() / 1000)
+                    + "s");
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Cập nhật nhãn người chơi hiện tại
+    updateCurrentPlayerLabel();
+
+    // UC20 Main Flow 20.1.6
+    // UC21 Main Flow 21.1.6
+    // Xóa trạng thái chọn quân cờ trước đó
+    currentTile = null;
+    draggedTile = null;
+}
+    
 /**
  * UC21: Redo Move
  * Thực hiện lại nước đi vừa bị Undo
