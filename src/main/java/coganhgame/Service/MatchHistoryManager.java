@@ -48,9 +48,20 @@ public class MatchHistoryManager {
         return reversed;
     }
 
+    // UC-24: Clear Match History
+    // Xóa toàn bộ lịch sử đấu bằng cách ghi đè file với nội dung rỗng
     public static void clearAll() {
-        try (PrintWriter out = new PrintWriter(FILE_NAME)) { out.print(""); }
-        catch (IOException e) { System.err.println("Failed to clear: " + e.getMessage()); }
+        // UC-24 Main Flow 24.1.5
+        // Mở file với PrintWriter (chế độ ghi đè, không append)
+        // UC-24 Main Flow 24.1.6
+        // Ghi chuỗi rỗng → toàn bộ nội dung file bị xóa
+        // File được đóng tự động qua try-with-resources
+        try (PrintWriter out = new PrintWriter(FILE_NAME)) {
+            out.print("");
+        } catch (IOException e) {
+            // UC-24 Exception: Ghi đè thất bại → in lỗi, refreshData() vẫn được gọi để đồng bộ UI
+            System.err.println("Failed to clear match records: " + e.getMessage());
+        }
     }
 }
          
