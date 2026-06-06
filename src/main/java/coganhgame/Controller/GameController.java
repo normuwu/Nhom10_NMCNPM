@@ -419,34 +419,61 @@ public class GameController {
         timeline.playFromStart();
     }
 
-  private void endGame() {
+    // UC-23: Save Match Record
+// Tự động lưu kết quả trận đấu vào file lịch sử sau khi game kết thúc
+    private void endGame() {
+        executor.shutdown();
+
+        // UC-15 Main Flow 15.1.4
+        // Hệ thống phát hiện game đã kết thúc và kích hoạt use case End Game
         prbTimeLeft.setProgress(1);
+
+        // UC-15 Main Flow 15.1.6
+        // Dừng bộ đếm thời gian của ván game
         timeline.stop();
+
+        // UC-15 Main Flow 15.1.6
+        // Vô hiệu hóa tất cả quân cờ để người chơi không thể tiếp tục đi
         for (PieceComp piece : pieceMap.values()) {
             piece.setDisablePiece();
         }
+
+        // UC-15 Main Flow 15.1.5
+        // Hiển thị người chiến thắng
         currentLabel.setText(" win");
+
+        // UC-15 Main Flow 15.1.6
+        // Hiển thị màu sắc tương ứng với người thắng
         if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
             prbTimeLeft.setStyle("-fx-accent: #E21818;");
         } else {
             prbTimeLeft.setStyle("-fx-accent: #2666CF;");
         }
 
-        // Save match record
-         Player winner = game.getCurrentPlayer();
-         Player loser = game.getOpponent();
+        // UC-23 Main Flow 23.1.1
+        // Xác định người thắng và người thua sau khi game kết thúc
+        Player winner = game.getCurrentPlayer();
+        Player loser = game.getOpponent();
+
+        // UC-23 Main Flow 23.1.2
+        // Tính thời lượng trận đấu (đơn vị: giây)
         long duration = (System.currentTimeMillis() - gameStartTime) / 1000;
+
+        // UC-23 Main Flow 23.1.3 & 23.1.4
+        // Tạo đối tượng MatchRecord, tự động ghi nhận playedAt = LocalDateTime.now()
         MatchRecord record = new MatchRecord(
-              game.getPlayer1().getName(),
-              game.getPlayer2().getName(),
-              winner.getName(),
-              gameMode,
-              botLevel,
-              duration
+                game.getPlayer1().getName(),
+                game.getPlayer2().getName(),
+                winner.getName(),
+                gameMode,   // UC-23 Alternative Flow 23.2.1 / 23.2.2: "2 Players" hoặc "Play With Bot"
+                botLevel,   // UC-23 Alternative Flow 23.2.1: botLevel = 0 nếu Human vs Human
+                duration
         );
+
+        // UC-23 Main Flow 23.1.5 → 23.1.8
+        // Gọi saveRecord() để serialize và ghi append vào file CSV
         MatchHistoryManager.saveRecord(record);
     }
-
 
     
   
