@@ -10,12 +10,22 @@ import java.util.List;
 public class MatchHistoryManager {
     private static final String FILE_NAME = "match_history.txt";
 
-    /** Append a match record */
+    // UC-23: Save Match Record
+    // Ghi một match record vào file lịch sử (chế độ append)
     public static void saveRecord(MatchRecord record) {
-        try (PrintWriter out = new PrintWriter(new FileWriter(FILE_NAME, true))) {
+        // UC-23 Main Flow 23.1.6
+        // Serialize MatchRecord thành chuỗi pipe-delimited (p1|p2|winner|mode|botLevel|duration|playedAt)
+        // UC-23 Main Flow 23.1.7
+        // Mở file với chế độ append (true), ghi dòng CSV mới vào cuối file
+        // UC-23 Main Flow 23.1.8
+        // File được đóng tự động qua try-with-resources
+        try (FileWriter fw = new FileWriter(FILE_NAME, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
             out.println(record.toCsvLine());
         } catch (IOException e) {
-            System.err.println("Failed to save match: " + e.getMessage());
+            // UC-23 Exception: Ghi file thất bại → in lỗi, không làm gián đoạn luồng End Game
+            System.err.println("Failed to save match record: " + e.getMessage());
         }
     }
 
