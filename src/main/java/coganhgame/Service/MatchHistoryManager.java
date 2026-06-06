@@ -29,22 +29,34 @@ public class MatchHistoryManager {
         }
     }
 
-    /** Load all records (newest first) */
+    // UC-24 Main Flow 24.1.8 (& UC-22: View Leaderboard)
+    // Đọc tất cả match records từ file, trả về danh sách mới nhất trước
     public static List<MatchRecord> loadAll() {
         List<MatchRecord> records = new ArrayList<>();
         File file = new File(FILE_NAME);
+
+        // Nếu file chưa tồn tại, trả về danh sách rỗng ngay
         if (!file.exists()) return records;
+
+        // Đọc từng dòng CSV và deserialize thành MatchRecord
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (!(line = line.trim()).isEmpty()) records.add(new MatchRecord(line));
+                line = line.trim();
+                if (!line.isEmpty()) {
+                    records.add(new MatchRecord(line));
+                }
             }
         } catch (IOException e) {
-            System.err.println("Failed to load matches: " + e.getMessage());
+            System.err.println("Failed to load match records: " + e.getMessage());
         }
-        // Reverse so newest first
+
+        // UC-24 Main Flow 24.1.9
+        // Đảo ngược danh sách để bản ghi mới nhất hiển thị đầu tiên trên Leaderboard
         List<MatchRecord> reversed = new ArrayList<>();
-        for (int i = records.size() - 1; i >= 0; i--) reversed.add(records.get(i));
+        for (int i = records.size() - 1; i >= 0; i--) {
+            reversed.add(records.get(i));
+        }
         return reversed;
     }
 
