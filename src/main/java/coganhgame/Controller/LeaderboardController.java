@@ -16,9 +16,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class LeaderboardController {
-    @FXML private TableView<MatchRecord> historyTable;
-    @FXML private TableColumn<MatchRecord, String> colDate, colPlayer1, colPlayer2, colWinner, colMode, colDuration;
-    @FXML private Label lblStats;
+    @FXML
+    private TableView<MatchRecord> historyTable;
+    @FXML
+    private TableColumn<MatchRecord, String> colDate, colPlayer1, colPlayer2, colWinner, colMode, colDuration;
+    @FXML
+    private Label lblStats;
 
     private final ObservableList<MatchRecord> records = FXCollections.observableArrayList();
 
@@ -55,17 +58,33 @@ public class LeaderboardController {
         lblStats.setText(String.format("Total: %d matches  |  Top: %s  |  Mode: %s", all.size(), topWinner, topMode));
     }
 
-    @FXML public void onCloseClick(ActionEvent e) { ((Stage)((Node)e.getSource()).getScene().getWindow()).close(); }
+    @FXML
+    public void onCloseClick(ActionEvent e) {
+        ((Stage) ((Node) e.getSource()).getScene().getWindow()).close();
+    }
 
     @FXML
+    // UC-24: Clear Match History
+    // Người chơi xóa toàn bộ lịch sử trận đấu và làm mới bảng xếp hạng
     public void onClearClick() {
+        // UC-24 Main Flow 24.1.2
+        // Hiển thị hộp thoại xác nhận trước khi xóa
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Clear History");
         alert.setHeaderText(null);
         alert.setContentText("Are you sure you want to clear all match history?");
+
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            // UC-24 Main Flow 24.1.3: Người chơi chọn OK
+            // UC-24 Main Flow 24.1.4 → 24.1.6
+            // Gọi clearAll() để ghi đè file bằng nội dung rỗng
             MatchHistoryManager.clearAll();
+
+            // UC-24 Main Flow 24.1.7 → 24.1.9
+            // Tải lại danh sách từ file, cập nhật giao diện Leaderboard hiển thị trống
             refreshData();
         }
+        // UC-24 Alternative Flow 24.2.1
+        // Người chơi chọn Cancel → đóng hộp thoại, dữ liệu giữ nguyên
     }
 }
