@@ -89,7 +89,6 @@ public class MenuController {
 
     private void showGameView(Stage currentStage, GameController controller) {
         FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/game-view.fxml"));
-
         Stage newStage = null;
         try {
             fxmlLoader.setControllerFactory(c -> controller);
@@ -98,12 +97,15 @@ public class MenuController {
             newStage.setScene(new Scene(fxmlLoader.load()));
             newStage.setResizable(false);
         } catch (IOException e) {
+            // UC-17 Exception
+            // Lỗi tải game-view.fxml, hiển thị thông báo lỗi và không chuyển màn hình
             ViewUtilities.showAlert("Error", "Error loading game view", e.getMessage());
         }
 
+        // UC-17 Main Flow 17.1.8
+        // Khi cửa sổ game hiển thị thì ẩn menu, khi đóng game thì hiện lại menu
         newStage.setOnShown(event -> currentStage.hide());
         newStage.setOnHidden(event -> currentStage.show());
-
         newStage.show();
     }
 
