@@ -31,6 +31,16 @@
                             <Cursor fx:constant="HAND"/>
                         </cursor>
                     </Button>
+                    // Thêm nút undo
+                    <Button fx:id="btnUndo" mnemonicParsing="false" onAction="#onBtnUndoClick"
+                            style="-fx-background-color: #E8A838;" text="Undo" textFill="WHITE" disable="true">
+                        <cursor><Cursor fx:constant="HAND"/></cursor>
+                    </Button>
+                    // Thêm nút redo
+                    <Button fx:id="btnRedo" mnemonicParsing="false" onAction="#onBtnRedoClick"
+                            style="-fx-background-color: #8B5CF6;" text="Redo" textFill="WHITE" disable="true">
+                        <cursor><Cursor fx:constant="HAND"/></cursor>
+                    </Button>
                     <Button fx:id="btnReset" layoutX="10.0" layoutY="10.0" mnemonicParsing="false"
                             onAction="#onBtnResetClick" style="-fx-background-color: #4d8e2f;"
                             text="Reset"

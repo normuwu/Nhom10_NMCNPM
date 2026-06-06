@@ -11,10 +11,18 @@ import coganhgame.Model.Tile.Tile;
 import coganhgame.Utilities.AdaptiveUtilities;
 import coganhgame.Utilities.Constants;
 import coganhgame.Utilities.ViewUtilities;
+import coganhgame.Model.Game.MatchRecord;
+import coganhgame.Model.Game.UndoSnapshot;
+import coganhgame.Model.Game.GameWithBot;
+import coganhgame.Model.Player.BotPlayer;
+import coganhgame.Model.Player.Player;
+import coganhgame.Service.MatchHistoryManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -32,6 +40,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import coganhgame.Service.UndoRedoManager;
 
 public class GameController {
     private final Game game;
@@ -95,6 +105,14 @@ public class GameController {
     private final TileComp[][] viewBoard = new TileComp[Constants.WIDTH][Constants.HEIGHT];
     private final Map<Piece, PieceComp> pieceMap = new HashMap<>();
 
+    // Undo/Redo
+    private final UndoRedoManager undoRedoManager = new UndoRedoManager();
+
+    // Match History
+    private long gameStartTime;
+    private String gameMode = "2 Players";
+    private int botLevel = 0;
+
     private final ChangeListener<Number> timeLeftListener = (observable, oldValue, newValue) -> {
         if (newValue.intValue() <= 0) {
             clearOpenHighlight();
@@ -104,13 +122,29 @@ public class GameController {
     private final Timeline timeline = new Timeline();
     private ChangeListener<? super Number> timeLeftListener;
 
+
+    // Sửa GameController
     public GameController(String player1Name, String player2Name, int timeLimit) {
         this.game = new Game(player1Name, player2Name, timeLimit);
+        this.gameMode = "2 Players";
+        this.botLevel = 0;
+    }
+
+    public GameController(String player1Name, int timeLimit, int botLevel) {
+        this.game = new GameWithBot(player1Name, timeLimit, botLevel);
+        this.gameMode = "Play With Bot";
+        this.botLevel = botLevel;
     }
 
     public GameController(Game game) {
         this.game = game;
+        this.gameMode = (game instanceof GameWithBot) ? "Play With Bot" : "2 Players";
+        this.botLevel = (game.getPlayer2() instanceof BotPlayer) ? ((BotPlayer) game.getPlayer2()).getBotLevel() : 0;
     }
+
+    // Thêm initialized
+    @FXML
+    private boolean initialized = false;
 
     @FXML
     public void initialize() {
@@ -140,6 +174,16 @@ public class GameController {
                 openPieceComp.highlightOpen();
             }
         }
+
+        // Thêm bind undo/redo buttom
+        // Bind Undo/Redo button disable property (only once to avoid IllegalStateException)
+        if (!initialized) {
+            btnUndo.disableProperty().bind(undoRedoManager.canUndoProperty().not());
+            btnRedo.disableProperty().bind(undoRedoManager.canRedoProperty().not());
+            initialized = true;
+        }
+        undoRedoManager.clear();
+        gameStartTime = System.currentTimeMillis();
 
         ((HumanPlayer) game.getCurrentPlayer()).getTimeLeft().addListener(timeLeftListener);
         game.getCurrentPlayer().playTimer();
@@ -269,6 +313,10 @@ public class GameController {
             }
             clearOpenHighlight();
 
+            // Thêm undosnapshot
+            // Capture snapshot BEFORE executing the move
+            UndoSnapshot snapshot = captureSnapshot();
+
             MoveResult moveResult = game.processMove(move);
 
             if (moveResult.isValidMove()) {
@@ -300,6 +348,11 @@ public class GameController {
                         }
                     }
                 } else {
+                    //thêm điều kiện undoredomanager
+                    // Push snapshot only after a successful move
+                    if (moveResult.isValidMove()) {
+                        undoRedoManager.pushSnapshot(snapshot);
+                    }
                     switchPlayer();
                 }
             } else {
@@ -366,20 +419,61 @@ public class GameController {
         timeline.playFromStart();
     }
 
-  private void endGame() {
+    // UC-23: Save Match Record
+// Tự động lưu kết quả trận đấu vào file lịch sử sau khi game kết thúc
+    private void endGame() {
+        executor.shutdown();
+
+        // UC-15 Main Flow 15.1.4
+        // Hệ thống phát hiện game đã kết thúc và kích hoạt use case End Game
         prbTimeLeft.setProgress(1);
+
+        // UC-15 Main Flow 15.1.6
+        // Dừng bộ đếm thời gian của ván game
         timeline.stop();
+
+        // UC-15 Main Flow 15.1.6
+        // Vô hiệu hóa tất cả quân cờ để người chơi không thể tiếp tục đi
         for (PieceComp piece : pieceMap.values()) {
             piece.setDisablePiece();
         }
+
+        // UC-15 Main Flow 15.1.5
+        // Hiển thị người chiến thắng
         currentLabel.setText(" win");
+
+        // UC-15 Main Flow 15.1.6
+        // Hiển thị màu sắc tương ứng với người thắng
         if (game.getCurrentPlayer().getSide() == Constants.RED_SIDE) {
             prbTimeLeft.setStyle("-fx-accent: #E21818;");
         } else {
             prbTimeLeft.setStyle("-fx-accent: #2666CF;");
         }
-    }
 
+        // UC-23 Main Flow 23.1.1
+        // Xác định người thắng và người thua sau khi game kết thúc
+        Player winner = game.getCurrentPlayer();
+        Player loser = game.getOpponent();
+
+        // UC-23 Main Flow 23.1.2
+        // Tính thời lượng trận đấu (đơn vị: giây)
+        long duration = (System.currentTimeMillis() - gameStartTime) / 1000;
+
+        // UC-23 Main Flow 23.1.3 & 23.1.4
+        // Tạo đối tượng MatchRecord, tự động ghi nhận playedAt = LocalDateTime.now()
+        MatchRecord record = new MatchRecord(
+                game.getPlayer1().getName(),
+                game.getPlayer2().getName(),
+                winner.getName(),
+                gameMode,   // UC-23 Alternative Flow 23.2.1 / 23.2.2: "2 Players" hoặc "Play With Bot"
+                botLevel,   // UC-23 Alternative Flow 23.2.1: botLevel = 0 nếu Human vs Human
+                duration
+        );
+
+        // UC-23 Main Flow 23.1.5 → 23.1.8
+        // Gọi saveRecord() để serialize và ghi append vào file CSV
+        MatchHistoryManager.saveRecord(record);
+    }
 
     
   
@@ -620,6 +714,117 @@ public void onBtnRedoClick() {
                 Stage currentStage = (Stage) source.getScene().getWindow();
                 currentStage.hide();
             }
+        }
+    }
+
+    //Thêm botmakemove
+    private void botMakeMove() {
+        Task<Move> botMoveTask = new Task<>() {
+            @Override
+            protected Move call() {
+                BotPlayer botPlayer = (BotPlayer) game.getCurrentPlayer();
+                botPlayer.playTimer();
+                Move botMove = botPlayer.getBestMove((GameWithBot) game);
+                botPlayer.pauseTimer();
+                return botMove;
+            }
+        };
+
+        botMoveTask.setOnSucceeded(event -> {
+            Move botMove = botMoveTask.getValue();
+
+            // Push snapshot before bot executes the move
+            UndoSnapshot botSnapshot = captureSnapshot();
+            undoRedoManager.pushSnapshot(botSnapshot);
+
+            PieceComp botPieceComp = pieceMap.get(botMove.fromTile().getPiece());
+            MoveResult botMoveResult = game.processMove(botMove);
+            clearOpenHighlight();
+            botPieceComp.slowMove(botMove.toTile().getRow(), botMove.toTile().getCol());
+
+            PauseTransition pause = new PauseTransition(Duration.seconds(Constants.BOT_MOVE_DELAY));
+            pause.setOnFinished(e -> {
+                if (botMoveResult.capturedPieces() != null) {
+                    for (Piece capturedModelPiece : botMoveResult.capturedPieces()) {
+                        PieceComp capturedPieceComp = pieceMap.get(capturedModelPiece);
+                        capturedPieceComp.flipSide();
+                    }
+                }
+                botPositionCount = BotPlayer.positionCount;
+                updateBotPositionCountLabel();
+                lblTotalTimeBlue.setText("Total time: " + ((double) game.getPlayer2().getTotalTime() / 1000) + "s");
+                BotPlayer.positionCount = 0;
+                switchPlayer();
+            });
+            pause.play();
+        });
+
+        executor.execute(botMoveTask);
+    }
+
+    // UNDO/REDO METHODS
+    /** Capture current game state for Undo */
+    private UndoSnapshot captureSnapshot() {
+        return new UndoSnapshot(
+                game.getBoard(),
+                game.getPlayer1().getTotalPiece(),
+                game.getPlayer2().getTotalPiece(),
+                game.getCurrentPlayer() == game.getPlayer1(),
+                game.isOpening(),
+                game.isOpening() ? game.getOpeningTile().getRow() : -1,
+                game.isOpening() ? game.getOpeningTile().getCol() : -1
+        );
+    }
+
+    /** Restore view after Undo/Redo snapshot restoration */
+    private void restoreViewFromSnapshot(UndoSnapshot snapshot) {
+        snapshot.restore(game, game.getBoard());
+        pieceCompGroup.getChildren().clear();
+        pieceMap.clear();
+        Tile[][] board = game.getBoard();
+        for (int r = 0; r < Constants.HEIGHT; r++) {
+            for (int c = 0; c < Constants.WIDTH; c++) {
+                if (board[r][c].hasPiece()) {
+                    PieceComp pc = makePieceComp(board[r][c].getPiece().getSide(), r, c);
+                    pieceCompGroup.getChildren().add(pc);
+                    pieceMap.put(board[r][c].getPiece(), pc);
+                }
+            }
+        }
+        for (PieceComp pc : pieceMap.values()) {
+            if (pc.getSide() == game.getCurrentPlayer().getSide()) pc.setEnablePiece();
+            else pc.setDisablePiece();
+        }
+        lblTotalPiecesRed.setText("x " + game.getPlayer1().getTotalPiece());
+        lblTotalPiecesBlue.setText("x " + game.getPlayer2().getTotalPiece());
+        lblTotalTimeRed.setText("Total time: " + ((double) game.getPlayer1().getTotalTime() / 1000) + "s");
+        lblTotalTimeBlue.setText("Total time: " + ((double) game.getPlayer2().getTotalTime() / 1000) + "s");
+        updateCurrentPlayerLabel();
+        currentTile = null;
+        draggedTile = null;
+    }
+
+    @FXML
+    public void onBtnUndoClick() {
+        UndoSnapshot beforeState = undoRedoManager.popUndo();
+        if (beforeState != null) {
+            UndoSnapshot afterState = captureSnapshot();
+            undoRedoManager.pushRedo(afterState);
+            restoreViewFromSnapshot(beforeState);
+            timeline.stop();
+            runTimer();
+        }
+    }
+
+    @FXML
+    public void onBtnRedoClick() {
+        UndoSnapshot afterState = undoRedoManager.popRedo();
+        if (afterState != null) {
+            UndoSnapshot beforeState = captureSnapshot();
+            undoRedoManager.pushUndo(beforeState);
+            restoreViewFromSnapshot(afterState);
+            timeline.stop();
+            runTimer();
         }
     }
 }
