@@ -22,30 +22,52 @@ public class MenuController {
     public Button btnContinue;
     @FXML
     public Button btnHow;
-    //Thêm nút btnLeaderboard
-    @FXML public Button btnLeaderboard;
+    @FXML
     public Button btnExit;
 
-    //Sửa lại method onNewGameClick
     @FXML
     protected void onNewGameClick(ActionEvent actionEvent) {
         Node source = (Node) actionEvent.getSource();
         Stage currentStage = (Stage) source.getScene().getWindow();
-        String gameMode = ViewUtilities.showGameOptions("Choose Game Mode",
-                "Choose Game Mode", "2 Players", "Play With Bot");
-        if (gameMode == null || gameMode.isEmpty()) return;
+
+        // UC-17: Chơi với Bot
+        // Hiển thị hộp thoại để người chơi chọn chế độ chơi
+        String gameMode = ViewUtilities.showGameOptions("Choose Game Mode", "Choose Game Mode", "2 Players", "Play With Bot");
+
+        // UC-17 Alternative Flow 17.2.2a
+        // Người chơi đóng hộp thoại, quay về màn hình menu chính
+        if (gameMode == null || gameMode.isEmpty()) {
+            return;
+        }
+
         final GameController[] controller = {null};
+
         if (gameMode.equals("2 Players")) {
             GameSettings gameSettings = ViewUtilities.get2PlayersSettings();
-            if (gameSettings == null) return;
-            controller[0] = new GameController(gameSettings.getPlayer1Name(),
-                    gameSettings.getPlayer2Name(), gameSettings.getGameTime());
+            if (gameSettings == null) {
+                return;
+            }
+            controller[0] = new GameController(gameSettings.getPlayer1Name(), gameSettings.getPlayer2Name(), gameSettings.getGameTime());
+
         } else if (gameMode.equals("Play With Bot")) {
+
+            // UC-17 Main Flow 17.1.4
+            // Hiển thị hộp thoại nhập tên, thời gian giới hạn và chọn độ khó Bot
             GameSettings gameSettings = ViewUtilities.getPlayWithBotSettings();
-            if (gameSettings == null) return;
-            controller[0] = new GameController(gameSettings.getPlayer1Name(),
-                    gameSettings.getGameTime(), gameSettings.getBotLevel());
+
+            // UC-17 Alternative Flow 17.2.4a
+            // Người chơi hủy hộp thoại, quay về màn hình menu chính
+            if (gameSettings == null) {
+                return;
+            }
+
+            // UC-17 Main Flow 17.1.7
+            // Khởi tạo GameController với tên người chơi, thời gian và độ khó Bot
+            controller[0] = new GameController(gameSettings.getPlayer1Name(), gameSettings.getGameTime(), gameSettings.getBotLevel());
         }
+
+        // UC-17 Main Flow 17.1.8
+        // Tải và hiển thị cửa sổ game, ẩn cửa sổ menu
         showGameView(currentStage, controller[0]);
     }
 
@@ -67,7 +89,6 @@ public class MenuController {
 
     private void showGameView(Stage currentStage, GameController controller) {
         FXMLLoader fxmlLoader = new FXMLLoader(GameApplication.class.getResource("View/game-view.fxml"));
-
         Stage newStage = null;
         try {
             fxmlLoader.setControllerFactory(c -> controller);
@@ -76,12 +97,15 @@ public class MenuController {
             newStage.setScene(new Scene(fxmlLoader.load()));
             newStage.setResizable(false);
         } catch (IOException e) {
+            // UC-17 Exception
+            // Lỗi tải game-view.fxml, hiển thị thông báo lỗi và không chuyển màn hình
             ViewUtilities.showAlert("Error", "Error loading game view", e.getMessage());
         }
 
+        // UC-17 Main Flow 17.1.8
+        // Khi cửa sổ game hiển thị thì ẩn menu, khi đóng game thì hiện lại menu
         newStage.setOnShown(event -> currentStage.hide());
         newStage.setOnHidden(event -> currentStage.show());
-
         newStage.show();
     }
 
@@ -108,26 +132,6 @@ public class MenuController {
     public void onExitClick() {
         if (ViewUtilities.showConfirm("Exit", "Are you sure you want to exit?")) {
             System.exit(0);
-        }
-    }
-
-    // Thêm method onLeaderboardClick
-    @FXML
-    public void onLeaderboardClick(ActionEvent actionEvent) {
-        try {
-            Node source = (Node) actionEvent.getSource();
-            Stage currentStage = (Stage) source.getScene().getWindow();
-            FXMLLoader fxmlLoader = new FXMLLoader(
-                    GameApplication.class.getResource("/View/leaderboard-view.fxml"));
-            Stage leaderboardStage = new Stage();
-            leaderboardStage.setTitle("Match History & Leaderboard");
-            leaderboardStage.setScene(new Scene(fxmlLoader.load()));
-            leaderboardStage.setResizable(false);
-            leaderboardStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
-            leaderboardStage.initOwner(currentStage);
-            leaderboardStage.show();
-        } catch (IOException e) {
-            ViewUtilities.showAlert("Error", "Error loading leaderboard", e.getMessage());
         }
     }
 }
