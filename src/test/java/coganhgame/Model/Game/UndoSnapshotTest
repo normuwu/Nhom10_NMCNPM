@@ -1,0 +1,94 @@
+package coganhgame.Model.Game;
+
+import coganhgame.Model.Piece;
+import coganhgame.Model.Tile.Tile;
+import coganhgame.Utilities.Constants;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class UndoSnapshotTest {
+
+    @Test
+    void snapshotStoresPieceCounts() {
+        UndoSnapshot snapshot =
+                new UndoSnapshot(
+                        createBoard(),
+                        7,
+                        9,
+                        true,
+                        false,
+                        -1,
+                        -1
+                );
+
+        assertEquals(7, snapshot.getPlayer1PieceCount());
+        assertEquals(9, snapshot.getPlayer2PieceCount());
+    }
+
+    @Test
+    void snapshotStoresCurrentPlayerFlag() {
+        UndoSnapshot player1TurnSnapshot =
+                new UndoSnapshot(createBoard(), 8, 8, true, false, -1, -1);
+        UndoSnapshot player2TurnSnapshot =
+                new UndoSnapshot(createBoard(), 8, 8, false, false, -1, -1);
+
+        assertTrue(player1TurnSnapshot.isCurrentPlayerPlayer1());
+        assertFalse(player2TurnSnapshot.isCurrentPlayerPlayer1());
+    }
+
+    @Test
+    void snapshotStoresOpeningTileFlag() {
+        UndoSnapshot snapshot =
+                new UndoSnapshot(
+                        createBoard(),
+                        8,
+                        8,
+                        true,
+                        true,
+                        2,
+                        3
+                );
+
+        assertTrue(snapshot.hasOpeningTile());
+    }
+
+    @Test
+    void restoreUsesCopiedBoardState() {
+        Tile[][] board = createBoard();
+        board[0][0].setPiece(new Piece(Constants.RED_SIDE));
+
+        UndoSnapshot snapshot =
+                new UndoSnapshot(board, 8, 8, true, false, -1, -1);
+
+        board[0][0].removePiece();
+        snapshot.restore(new Game("Player 1", "Player 2", 60), board);
+
+        assertTrue(board[0][0].hasPiece());
+        assertTrue(board[0][0].getPiece().getSide());
+    }
+
+    @Test
+    void restoreSetsOpeningTile() {
+        Tile[][] board = createBoard();
+        Game game = new Game("Player 1", "Player 2", 60);
+        UndoSnapshot snapshot =
+                new UndoSnapshot(board, 8, 8, true, true, 2, 3);
+
+        snapshot.restore(game, board);
+
+        assertSame(board[2][3], game.getOpeningTile());
+    }
+
+    private Tile[][] createBoard() {
+        Tile[][] board = new Tile[Constants.HEIGHT][Constants.WIDTH];
+
+        for (int row = 0; row < Constants.HEIGHT; row++) {
+            for (int col = 0; col < Constants.WIDTH; col++) {
+                board[row][col] = Tile.getTileType(null, row, col);
+            }
+        }
+
+        return board;
+    }
+}

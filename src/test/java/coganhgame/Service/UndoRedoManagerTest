@@ -1,0 +1,123 @@
+package coganhgame.Service;
+
+import coganhgame.Model.Game.UndoSnapshot;
+import coganhgame.Model.Tile.Tile;
+import coganhgame.Utilities.Constants;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class UndoRedoManagerTest {
+
+    private UndoRedoManager manager;
+
+    @BeforeEach
+    void setUp() {
+        manager = new UndoRedoManager();
+    }
+
+    @Test
+    void initialStateHasNoUndoOrRedo() {
+        assertFalse(manager.canUndo());
+        assertFalse(manager.canRedo());
+        assertFalse(manager.canUndoProperty().get());
+        assertFalse(manager.canRedoProperty().get());
+    }
+
+    @Test
+    void pushSnapshotEnablesUndoAndClearsRedo() {
+        UndoSnapshot firstSnapshot = createSnapshot();
+        UndoSnapshot redoSnapshot = createSnapshot();
+
+        manager.pushRedo(redoSnapshot);
+        manager.pushSnapshot(firstSnapshot);
+
+        assertTrue(manager.canUndo());
+        assertTrue(manager.canUndoProperty().get());
+        assertFalse(manager.canRedo());
+        assertFalse(manager.canRedoProperty().get());
+    }
+
+    @Test
+    void popUndoReturnsLatestSnapshot() {
+        UndoSnapshot firstSnapshot = createSnapshot();
+        UndoSnapshot latestSnapshot = createSnapshot();
+
+        manager.pushSnapshot(firstSnapshot);
+        manager.pushSnapshot(latestSnapshot);
+
+        assertSame(latestSnapshot, manager.popUndo());
+        assertSame(firstSnapshot, manager.popUndo());
+        assertFalse(manager.canUndo());
+    }
+
+    @Test
+    void pushRedoAndPopRedoUseLatestSnapshot() {
+        UndoSnapshot firstSnapshot = createSnapshot();
+        UndoSnapshot latestSnapshot = createSnapshot();
+
+        manager.pushRedo(firstSnapshot);
+        manager.pushRedo(latestSnapshot);
+
+        assertTrue(manager.canRedo());
+        assertSame(latestSnapshot, manager.popRedo());
+        assertSame(firstSnapshot, manager.popRedo());
+        assertFalse(manager.canRedo());
+    }
+
+    @Test
+    void clearRemovesUndoAndRedoSnapshots() {
+        manager.pushSnapshot(createSnapshot());
+        manager.pushRedo(createSnapshot());
+
+        manager.clear();
+
+        assertFalse(manager.canUndo());
+        assertFalse(manager.canRedo());
+        assertFalse(manager.canUndoProperty().get());
+        assertFalse(manager.canRedoProperty().get());
+    }
+
+    @Test
+    void popUndoWhenEmptyReturnsNull() {
+        assertNull(manager.popUndo());
+    }
+
+    @Test
+    void popRedoWhenEmptyReturnsNull() {
+        assertNull(manager.popRedo());
+    }
+
+    @Test
+    void undoStackKeepsOnlyFiftyLatestSnapshots() {
+        UndoSnapshot oldestSnapshot = createSnapshot();
+        manager.pushSnapshot(oldestSnapshot);
+
+        for (int i = 0; i < 50; i++) {
+            manager.pushSnapshot(createSnapshot());
+        }
+
+        for (int i = 0; i < 50; i++) {
+            assertNotSame(oldestSnapshot, manager.popUndo());
+        }
+
+        assertNull(manager.popUndo());
+    }
+
+    private UndoSnapshot createSnapshot() {
+        return new UndoSnapshot(createBoard(), 8, 8, true, false, -1, -1);
+    }
+
+    private Tile[][] createBoard() {
+        Tile[][] board = new Tile[Constants.HEIGHT][Constants.WIDTH];
+
+        for (int row = 0; row < Constants.HEIGHT; row++) {
+            for (int col = 0; col < Constants.WIDTH; col++) {
+                board[row][col] = Tile.getTileType(null, row, col);
+            }
+        }
+
+        return board;
+    }
+}
