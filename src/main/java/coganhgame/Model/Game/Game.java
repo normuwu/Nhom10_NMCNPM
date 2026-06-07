@@ -14,6 +14,9 @@ import java.io.*;
 import java.util.ArrayList;
 
 public class Game implements Serializable {
+    // ── File name for save/load (non-final so tests can redirect via @TempDir / reflection) ──
+    private static String FILE_NAME = "game_state.txt";
+
     protected Tile[][] board;
     private final Player player1;
     private final Player player2;
@@ -291,7 +294,7 @@ public class Game implements Serializable {
 
     public void saveGame() {
         try {
-            FileOutputStream fos = new FileOutputStream("game_state.txt");
+            FileOutputStream fos = new FileOutputStream(FILE_NAME);
             ObjectOutputStream oos = new ObjectOutputStream(fos);
             oos.writeObject(this);
             oos.close();
@@ -304,7 +307,7 @@ public class Game implements Serializable {
     public static Game loadGame() throws GameNotFoundException {
         Game game = null;
         try {
-            File file = new File("game_state.txt");
+            File file = new File(FILE_NAME);
             if (!file.exists() || file.length() == 0) {
                 throw new GameNotFoundException();
             }
