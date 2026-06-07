@@ -16,6 +16,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class LeaderboardController {
+    @FXML
+    private TableView<MatchRecord> historyTable;
+    @FXML
+    private TableColumn<MatchRecord, String> colDate, colPlayer1, colPlayer2, colWinner, colMode, colDuration;
+    @FXML
+    private Label lblStats;
 
     @FXML private TableView<MatchRecord> historyTable;
     @FXML private TableColumn<MatchRecord, String> colDate;
@@ -102,6 +108,8 @@ public class LeaderboardController {
     }
 
     @FXML
+    // UC-24: Clear Match History
+    // Người chơi xóa toàn bộ lịch sử trận đấu và làm mới bảng xếp hạng
     public void onClearClick() {
         // UC-24: Clear Match History
         // Hàm kích hoạt Use Case Xóa lịch sử khi người dùng nhấn nút "Clear History"
@@ -112,8 +120,13 @@ public class LeaderboardController {
 
         // Nếu người chơi chọn OK (Đồng ý xóa)
         if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            // UC-24 Main Flow 24.1.3: Người chơi chọn OK
+            // UC-24 Main Flow 24.1.4 → 24.1.6
+            // Gọi clearAll() để ghi đè file bằng nội dung rỗng
             MatchHistoryManager.clearAll();
             refreshData(); // Làm mới lại bảng và thống kê sau khi xóa
         }
+        // UC-24 Alternative Flow 24.2.1
+        // Người chơi chọn Cancel → đóng hộp thoại, dữ liệu giữ nguyên
     }
 }
