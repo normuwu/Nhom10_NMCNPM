@@ -145,7 +145,7 @@ public class BotPlayer extends Player {
         }
         return totalValue;
     }
-}
+
 
     @Override
     public void playTimer() {
